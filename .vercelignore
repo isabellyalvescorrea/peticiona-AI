@@ -1,0 +1,8 @@
+# Configuração local do preview — não é usada em produção.
+.claude/
+
+# Gabarito visual do protótipo: material de referência, não é servido pelo site.
+assets/img/referencia-prototipo.jpeg
+
+# Documentação do repositório.
+README.md
