@@ -51,32 +51,15 @@ require __DIR__ . '/head.php';
       <?php endforeach; ?>
     </ul>
 
-    <p class="rotulo-secao mt-10 px-3 text-[9px] text-gold/70">Institucional</p>
-    <ul class="mt-4 space-y-1">
+    <ul class="mt-8 space-y-1 border-t border-gold/[0.1] pt-6">
       <li>
         <a href="index.php#portal-juris"
            class="block rounded-md px-3 py-2.5 text-[13.5px] text-silver transition-colors duration-500 hover:bg-gold/[0.035] hover:text-silk">
           Voltar ao site
         </a>
       </li>
-      <li>
-        <a href="index.php#solucoes-legais"
-           class="block rounded-md px-3 py-2.5 text-[13.5px] text-silver transition-colors duration-500 hover:bg-gold/[0.035] hover:text-silk">
-          Soluções Legais
-        </a>
-      </li>
     </ul>
   </nav>
-
-  <!-- Assinatura do usuário -->
-  <div class="shrink-0 border-t border-gold/[0.12] px-5 py-5">
-    <p class="text-[13.5px] font-medium text-silk">Dra. Helena Vasconcelos</p>
-    <p class="mt-1 text-[11.5px] text-silver">OAB/SP 214.907 &middot; Plano Banca</p>
-    <div class="filete-progresso mt-4 rounded-full">
-      <span style="width:68%"></span>
-    </div>
-    <p class="mt-2 text-[10.5px] text-silver/70">68% das peças do mês utilizadas</p>
-  </div>
 </aside>
 
 <!-- ============================== CORPO ============================== -->
@@ -100,9 +83,6 @@ require __DIR__ . '/head.php';
         <?php endif; ?>
       </div>
 
-      <span class="hidden shrink-0 rounded-sm border border-sapphire/30 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-sapphire sm:inline-block">
-        Protótipo
-      </span>
     </div>
   </header>
 

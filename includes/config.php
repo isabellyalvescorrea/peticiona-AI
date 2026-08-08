@@ -158,8 +158,8 @@ function ecossistema(): array
             'texto'  => 'Arquitetura em nuvem com alta redundância, garantindo acesso instantâneo em qualquer dispositivo.',
         ],
         [
-            'titulo' => 'Suporte Especializado',
-            'texto'  => 'Atendimento técnico dedicado para auxiliar na configuração, integração e usabilidade do seu escritório.',
+            'titulo' => 'Inteligência & Privacidade Nativa',
+            'texto'  => 'Processamento ultra-rápido de minutas e peças processuais com total sigilo dos dados, sem dependência de bancos de dados externos expostos.',
         ],
     ];
 }

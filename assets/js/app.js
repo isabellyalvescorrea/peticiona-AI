@@ -108,15 +108,29 @@
 
     alvos.forEach(function (el) { obs.observe(el); });
 
-    // Rede de segurança: a animação de entrada é progressive enhancement e nunca
-    // pode deixar o conteúdo permanentemente invisível. Há contextos em que o
-    // IntersectionObserver simplesmente não dispara — janelas sem composição de
+    // Redes de segurança. A animação de entrada é progressive enhancement e nunca
+    // pode deixar conteúdo permanentemente invisível.
+    //
+    // A primeira cobre o caso comum: o observador avalia as posições antes de o
+    // layout assentar (a folha do Tailwind chega por CDN e desloca tudo), de modo
+    // que um elemento já dentro da janela pode ser medido como fora e nunca mais
+    // receber um evento, porque a página não rola. Passado o tempo de assentar,
+    // qualquer alvo visível é revelado.
+    window.setTimeout(function () {
+      alvos.forEach(function (el) {
+        if (el.classList.contains('visivel')) return;
+        var r = el.getBoundingClientRect();
+        if (r.top < window.innerHeight && r.bottom > 0) mostrar(el);
+      });
+    }, 1200);
+
+    // A segunda cobre o observador que nunca funciona — janelas sem composição de
     // frames, painéis embutidos, pré-renderizadores e capturas automatizadas.
     window.setTimeout(function () {
       if (observadorAtuou) return;
       obs.disconnect();
       mostrarTodos();
-    }, 1200);
+    }, 2500);
   })();
 
   /* ---------------------------------------------------------------------

@@ -243,29 +243,25 @@ body {
 
 /* --- Acervo vetorial do Hero -------------------------------------------- */
 
-.arte-hero {
+/* Camada ambiente do Hero: ocupa toda a superfície disponível e fica atrás do
+   conteúdo. Como as curvas são puramente decorativas, elas cedem presença
+   conforme a tela encolhe — no celular a leitura vem primeiro. */
+.camada-ondas {
+  width: 100%;
+  height: 100%;
   pointer-events: none;
   user-select: none;
+  /* No celular o hero fica alto e os arcos acabam correndo atrás dos cards,
+     por isso a presença cai bastante — decorativo não disputa com texto. */
+  opacity: 0.26;
+  /* Dissolve as pontas na vertical: os arcos emergem e somem no fundo em vez
+     de encostarem nos botões acima e na barra de destaques abaixo. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 26%, #000 64%, transparent 100%);
+          mask-image: linear-gradient(to bottom, transparent 0%, #000 26%, #000 64%, transparent 100%);
 }
 
-/* Escala das artes laterais.
-   A largura não é um valor fixo por breakpoint: ela é derivada do espaço livre
-   ao lado do bloco de texto centralizado, para o desenho crescer o quanto der
-   preservando uma folga constante (~40px). Dois limites concorrem — acima de
-   ~1280px quem manda é o título; abaixo disso, o subtítulo (max-w 660px), que
-   é o elemento mais largo. O min() resolve os dois de uma vez. */
-.arte-lateral {
-  width: clamp(210px, min(36vw - 59px, 74vw - 548px), 620px);
-  aspect-ratio: 350 / 380;
-}
-
-/* Respiração lenta da luz sob a balança e sob o tribunal. */
-@keyframes pulso-luz {
-  0%, 100% { opacity: 0.55; }
-  50%      { opacity: 1; }
-}
-
-.luz-base { animation: pulso-luz 6s ease-in-out infinite; transform-origin: center; }
+@media (min-width: 640px)  { .camada-ondas { opacity: 0.5; } }
+@media (min-width: 1024px) { .camada-ondas { opacity: 1; } }
 
 /* Curvas ambientes: o brilho champanhe vem daqui, não do traço, para que o halo
    envolva a linha inteira sem engrossá-la. */

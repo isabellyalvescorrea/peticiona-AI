@@ -6,11 +6,12 @@ $pagina_titulo    = 'Visão Geral — ' . APP_NAME;
 $painel_titulo    = 'Visão Geral';
 $painel_subtitulo = 'Panorama do escritório — agosto de ' . date('Y');
 
+// Estado de primeiro acesso: nada foi produzido ainda.
 $indicadores = [
-    ['rotulo' => 'Peças Geradas no Mês',  'valor' => '148', 'variacao' => '+22% sobre julho',        'barra' => 74],
-    ['rotulo' => 'Contratos Analisados',  'valor' => '37',  'variacao' => '+9 novas auditorias',     'barra' => 52],
-    ['rotulo' => 'Horas Economizadas',    'valor' => '212', 'variacao' => 'equivalente a 26 dias',   'barra' => 88],
-    ['rotulo' => 'Clientes Ativos',       'valor' => '64',  'variacao' => '5 admitidos este mês',    'barra' => 41],
+    ['rotulo' => 'Peças Geradas no Mês',  'valor' => '0', 'variacao' => 'Nenhuma peça gerada ainda',    'barra' => 0],
+    ['rotulo' => 'Contratos Analisados',  'valor' => '0', 'variacao' => 'Aguardando primeira análise',  'barra' => 0],
+    ['rotulo' => 'Horas Economizadas',    'valor' => '0', 'variacao' => 'Inicie o uso para contabilizar', 'barra' => 0],
+    ['rotulo' => 'Clientes Ativos',       'valor' => '0', 'variacao' => 'Nenhum cliente cadastrado',    'barra' => 0],
 ];
 
 $atalhos = [
@@ -37,6 +38,21 @@ $distribuicao = [
 
 require __DIR__ . '/includes/header-painel.php';
 ?>
+
+<!-- Orientação ao avaliador -->
+<section class="revelar mb-5 xl:mb-6" aria-label="Boas-vindas">
+  <div class="overflow-hidden rounded-lg border border-gold/[0.35] bg-gold/[0.07]">
+    <div class="h-px w-full bg-gradient-to-r from-transparent via-gold to-transparent"></div>
+    <p class="px-6 py-5 text-[14px] leading-[1.7] text-silk sm:px-7 sm:text-[14.5px]">
+      <span class="mr-1" aria-hidden="true">👋</span>
+      Bem-vindo ao Peticiona AI! Este é o seu ambiente de testes. Para começar a experimentar
+      a inteligência do sistema, utilize os atalhos abaixo ou o menu lateral para
+      <a href="gerador-de-pecas.php" class="text-gold underline decoration-gold/40 underline-offset-4 transition-colors duration-300 hover:decoration-gold">Gerar nova peça</a>
+      ou
+      <a href="analisador-de-contratos.php" class="text-gold underline decoration-gold/40 underline-offset-4 transition-colors duration-300 hover:decoration-gold">Auditar um contrato</a>.
+    </p>
+  </div>
+</section>
 
 <!-- Indicadores -->
 <section aria-label="Indicadores do escritório">
@@ -136,7 +152,7 @@ require __DIR__ . '/includes/header-painel.php';
 
     <div class="border-t border-gold/[0.1] px-6 py-5 sm:px-7">
       <p class="text-[12px] leading-relaxed text-silver/70">
-        Percentuais calculados sobre as 148 peças produzidas no período.
+        Os percentuais são recalculados a cada nova peça produzida.
       </p>
     </div>
   </article>

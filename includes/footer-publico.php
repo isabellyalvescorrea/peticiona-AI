@@ -6,7 +6,7 @@ require_once __DIR__ . '/config.php';
 <footer class="relative border-t border-gold/[0.12] bg-navy">
   <div class="mx-auto max-w-[1400px] px-5 py-14 sm:px-8 lg:py-16">
 
-    <div class="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr] lg:gap-16">
+    <div class="grid gap-12 md:grid-cols-2 lg:grid-cols-[1.25fr_0.8fr_0.8fr_1.15fr] lg:gap-12">
       <div>
         <img src="<?= e(asset('assets/img/logo.png')) ?>" alt="<?= e(APP_NAME) ?>" class="h-8 w-auto">
         <p class="mt-6 max-w-md text-[14px] leading-relaxed text-silver">
@@ -44,14 +44,30 @@ require_once __DIR__ . '/config.php';
           <?php endforeach; ?>
         </ul>
       </div>
+
+      <div>
+        <h3 class="rotulo-secao text-[10.5px] text-gold">Sobre o Sistema</h3>
+        <dl class="mt-6 space-y-4">
+          <?php
+          $ficha_tecnica = [
+              'Arquitetura' => 'PHP Serverless hospedado na Vercel',
+              'Motor de IA' => 'Google Gemini API (Modelos de última geração)',
+              'Persistência' => 'Estrutura local JSON via localStorage',
+              'Foco' => 'Alta disponibilidade, velocidade e segurança jurídica',
+          ];
+          foreach ($ficha_tecnica as $rotulo => $valor): ?>
+            <div>
+              <dt class="text-[10.5px] uppercase tracking-[0.18em] text-gold/70"><?= e($rotulo) ?></dt>
+              <dd class="mt-1 text-[13.5px] leading-relaxed text-silver"><?= e($valor) ?></dd>
+            </div>
+          <?php endforeach; ?>
+        </dl>
+      </div>
     </div>
 
-    <div class="mt-14 flex flex-col gap-4 border-t border-gold/[0.1] pt-7 sm:flex-row sm:items-center sm:justify-between">
-      <p class="text-[12.5px] text-silver/70">
+    <div class="mt-14 border-t border-gold/[0.1] pt-7">
+      <p class="text-center text-[12.5px] text-silver/70">
         © <?= date('Y') ?> <?= e(APP_NAME) ?>. Todos os direitos reservados.
-      </p>
-      <p class="text-[12.5px] text-silver/60">
-        Protótipo de interface — conteúdo demonstrativo, sem valor jurídico.
       </p>
     </div>
   </div>
