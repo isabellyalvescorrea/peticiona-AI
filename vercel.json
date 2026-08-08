@@ -8,6 +8,7 @@
   "routes": [
     { "src": "/includes/(.*)", "status": 404 },
     { "src": "/api/404\\.php", "status": 404 },
+    { "src": "/", "dest": "/api/index.php?__rota=index.php" },
     { "src": "/(.*)\\.php", "dest": "/api/index.php?__rota=$1.php" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/api/index.php?__rota=$1" }
