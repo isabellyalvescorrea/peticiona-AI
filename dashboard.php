@@ -20,37 +20,32 @@ $atalhos = [
     ['titulo' => 'Abrir minha carteira',   'texto' => 'Clientes, números de processo e peças arquivadas.',           'file' => 'meus-clientes.php'],
 ];
 
-$atividades = [
-    ['hora' => 'Hoje, 09:42', 'titulo' => 'Petição inicial — Ação de obrigação de fazer',      'cliente' => 'Marcelo Andrade Ribeiro',   'estado' => 'Exportada em .docx'],
-    ['hora' => 'Hoje, 08:15', 'titulo' => 'Contestação trabalhista — horas extras',            'cliente' => 'Metalúrgica Vertentes Ltda.', 'estado' => 'Revisão pendente'],
-    ['hora' => 'Ontem, 18:07','titulo' => 'Auditoria — contrato de prestação de serviços',     'cliente' => 'Nexus Participações S.A.',   'estado' => '3 riscos críticos'],
-    ['hora' => 'Ontem, 16:30','titulo' => 'Resumo executivo enviado ao cliente',               'cliente' => 'Beatriz Camargo Nogueira',   'estado' => 'WhatsApp'],
-    ['hora' => 'Ontem, 11:52','titulo' => 'Agravo de instrumento — tutela indeferida',         'cliente' => 'Condomínio Alto das Palmas',  'estado' => 'Protocolada'],
-];
+// Primeiro acesso: nenhum histórico registrado.
+$atividades = [];
 
 $distribuicao = [
-    ['area' => 'Cível & Processo Civil',   'percentual' => 38],
-    ['area' => 'Trabalhista',              'percentual' => 24],
-    ['area' => 'Consumidor',               'percentual' => 17],
-    ['area' => 'Família & Sucessões',      'percentual' => 13],
-    ['area' => 'Penal',                    'percentual' => 8],
+    ['area' => 'Cível & Processo Civil',   'percentual' => 0],
+    ['area' => 'Trabalhista',              'percentual' => 0],
+    ['area' => 'Consumidor',               'percentual' => 0],
+    ['area' => 'Família & Sucessões',      'percentual' => 0],
+    ['area' => 'Penal',                    'percentual' => 0],
 ];
 
 require __DIR__ . '/includes/header-painel.php';
 ?>
 
 <!-- Orientação ao avaliador -->
-<section class="revelar mb-5 xl:mb-6" aria-label="Boas-vindas">
-  <div class="overflow-hidden rounded-lg border border-gold/[0.35] bg-gold/[0.07]">
+<section class="revelar mb-5 xl:mb-6" aria-label="Ambiente de demonstração">
+  <div class="cartao overflow-hidden rounded-lg border-gold/[0.3]">
     <div class="h-px w-full bg-gradient-to-r from-transparent via-gold to-transparent"></div>
-    <p class="px-6 py-5 text-[14px] leading-[1.7] text-silk sm:px-7 sm:text-[14.5px]">
-      <span class="mr-1" aria-hidden="true">👋</span>
-      Bem-vindo ao Peticiona AI! Este é o seu ambiente de testes. Para começar a experimentar
-      a inteligência do sistema, utilize os atalhos abaixo ou o menu lateral para
-      <a href="gerador-de-pecas.php" class="text-gold underline decoration-gold/40 underline-offset-4 transition-colors duration-300 hover:decoration-gold">Gerar nova peça</a>
-      ou
-      <a href="analisador-de-contratos.php" class="text-gold underline decoration-gold/40 underline-offset-4 transition-colors duration-300 hover:decoration-gold">Auditar um contrato</a>.
-    </p>
+    <div class="px-6 py-6 sm:px-8 sm:py-7">
+      <p class="rotulo-secao text-[9.5px] text-gold/80">Ambiente de Demonstração</p>
+      <p class="mt-3 max-w-[760px] text-[14.5px] leading-[1.75] text-slate-200 sm:text-[15px]">
+        <span class="font-medium text-silk">Ambiente de Demonstração Peticiona AI</span>
+        &mdash; Utilize os atalhos abaixo ou o menu lateral para iniciar a geração de
+        peças processuais ou auditoria de contratos.
+      </p>
+    </div>
   </div>
 </section>
 
@@ -106,26 +101,36 @@ require __DIR__ . '/includes/header-painel.php';
       <span class="rotulo-secao text-[9px] text-gold/70">Últimas 48 h</span>
     </div>
 
-    <ul>
-      <?php foreach ($atividades as $i => $ato): ?>
-        <li class="<?= $i > 0 ? 'border-t border-gold/[0.07]' : '' ?> px-6 py-5 transition-colors duration-500 hover:bg-gold/[0.025] sm:px-7">
-          <div class="flex flex-col gap-1.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
-            <div class="min-w-0">
-              <p class="text-[14.5px] leading-snug text-silk"><?= e($ato['titulo']) ?></p>
-              <p class="mt-1.5 text-[12.5px] text-silver"><?= e($ato['cliente']) ?></p>
+    <?php if ($atividades === []): ?>
+      <div class="flex min-h-[260px] flex-col items-center justify-center px-8 py-14 text-center">
+        <p class="max-w-[380px] text-[14px] leading-[1.75] text-silver">
+          Nenhuma atividade recente registrada.
+          <span class="block text-silver/70">Suas ações aparecerão aqui em tempo real.</span>
+        </p>
+        <span class="mt-7 block h-px w-14 bg-gold/30"></span>
+      </div>
+    <?php else: ?>
+      <ul>
+        <?php foreach ($atividades as $i => $ato): ?>
+          <li class="<?= $i > 0 ? 'border-t border-gold/[0.07]' : '' ?> px-6 py-5 transition-colors duration-500 hover:bg-gold/[0.025] sm:px-7">
+            <div class="flex flex-col gap-1.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
+              <div class="min-w-0">
+                <p class="text-[14.5px] leading-snug text-silk"><?= e($ato['titulo']) ?></p>
+                <p class="mt-1.5 text-[12.5px] text-silver"><?= e($ato['cliente']) ?></p>
+              </div>
+              <div class="shrink-0 sm:text-right">
+                <p class="text-[11.5px] text-silver/70"><?= e($ato['hora']) ?></p>
+                <p class="mt-1.5 text-[11.5px] text-gold/80"><?= e($ato['estado']) ?></p>
+              </div>
             </div>
-            <div class="shrink-0 sm:text-right">
-              <p class="text-[11.5px] text-silver/70"><?= e($ato['hora']) ?></p>
-              <p class="mt-1.5 text-[11.5px] text-gold/80"><?= e($ato['estado']) ?></p>
-            </div>
-          </div>
-        </li>
-      <?php endforeach; ?>
-    </ul>
+          </li>
+        <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
 
     <div class="border-t border-gold/[0.1] px-6 py-4 sm:px-7">
-      <a href="meus-clientes.php" class="link-seta text-[12.5px] uppercase tracking-[0.16em] text-gold">
-        Ver histórico completo <span class="seta ml-1">&rarr;</span>
+      <a href="gerador-de-pecas.php" class="link-seta text-[12.5px] uppercase tracking-[0.16em] text-gold">
+        Gerar a primeira peça <span class="seta ml-1">&rarr;</span>
       </a>
     </div>
   </article>
@@ -152,7 +157,7 @@ require __DIR__ . '/includes/header-painel.php';
 
     <div class="border-t border-gold/[0.1] px-6 py-5 sm:px-7">
       <p class="text-[12px] leading-relaxed text-silver/70">
-        Os percentuais são recalculados a cada nova peça produzida.
+        Aguardando primeiras produções.
       </p>
     </div>
   </article>

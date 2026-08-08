@@ -243,25 +243,28 @@ body {
 
 /* --- Acervo vetorial do Hero -------------------------------------------- */
 
-/* Camada ambiente do Hero: ocupa toda a superfície disponível e fica atrás do
-   conteúdo. Como as curvas são puramente decorativas, elas cedem presença
-   conforme a tela encolhe — no celular a leitura vem primeiro. */
-.camada-ondas {
-  width: 100%;
-  height: 100%;
+.arte-hero {
   pointer-events: none;
   user-select: none;
-  /* No celular o hero fica alto e os arcos acabam correndo atrás dos cards,
-     por isso a presença cai bastante — decorativo não disputa com texto. */
-  opacity: 0.26;
-  /* Dissolve as pontas na vertical: os arcos emergem e somem no fundo em vez
-     de encostarem nos botões acima e na barra de destaques abaixo. */
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 26%, #000 64%, transparent 100%);
-          mask-image: linear-gradient(to bottom, transparent 0%, #000 26%, #000 64%, transparent 100%);
 }
 
-@media (min-width: 640px)  { .camada-ondas { opacity: 0.5; } }
-@media (min-width: 1024px) { .camada-ondas { opacity: 1; } }
+/* Escala das curvas laterais.
+   A largura não é um valor fixo por breakpoint: ela é derivada do espaço livre
+   ao lado do bloco de texto centralizado. Dois limites concorrem — acima de
+   ~1280px quem manda é o título; abaixo disso, o subtítulo (max-w 660px), que
+   é o elemento mais largo. O min() resolve os dois de uma vez. */
+.arte-lateral {
+  width: clamp(210px, min(36vw - 59px, 74vw - 548px), 620px);
+  aspect-ratio: 350 / 380;
+}
+
+/* As curvas são decorativas e cedem presença conforme a tela encolhe: no
+   celular o hero fica alto e elas correriam atrás do texto. A leitura vem
+   primeiro, mas o traçado permanece o mesmo em qualquer largura. */
+.ondas-laterais { opacity: 0.3; }
+
+@media (min-width: 640px)  { .ondas-laterais { opacity: 0.55; } }
+@media (min-width: 1024px) { .ondas-laterais { opacity: 1; } }
 
 /* Curvas ambientes: o brilho champanhe vem daqui, não do traço, para que o halo
    envolva a linha inteira sem engrossá-la. */

@@ -1,99 +1,22 @@
 <?php
-/** Painel — Meus Clientes & Processos (protótipo visual, carteira fictícia). */
+/** Painel — Meus Clientes & Processos (protótipo visual). */
 require_once __DIR__ . '/includes/config.php';
 
 $pagina_titulo    = 'Meus Clientes — ' . APP_NAME;
 $painel_titulo    = 'Meus Clientes & Processos';
 $painel_subtitulo = 'Carteira, números de processo e peças arquivadas';
 
-$clientes = [
-    [
-        'nome'      => 'Marcelo Andrade Ribeiro',
-        'documento' => 'CPF 312.884.770-19',
-        'processo'  => '1029384-55.2026.8.26.0100',
-        'area'      => 'Cível',
-        'vara'      => '7.ª Vara Cível — Foro Central/SP',
-        'situacao'  => 'Em andamento',
-        'pecas'     => 6,
-        'ultima'    => 'Petição inicial · hoje',
-    ],
-    [
-        'nome'      => 'Metalúrgica Vertentes Ltda.',
-        'documento' => 'CNPJ 08.442.190/0001-63',
-        'processo'  => '0011257-84.2026.5.02.0043',
-        'area'      => 'Trabalhista',
-        'vara'      => '43.ª Vara do Trabalho de São Paulo',
-        'situacao'  => 'Aguardando audiência',
-        'pecas'     => 9,
-        'ultima'    => 'Contestação · hoje',
-    ],
-    [
-        'nome'      => 'Beatriz Camargo Nogueira',
-        'documento' => 'CPF 447.201.338-06',
-        'processo'  => '1004471-12.2026.8.26.0011',
-        'area'      => 'Família',
-        'vara'      => '2.ª Vara de Família — Pinheiros/SP',
-        'situacao'  => 'Sentença publicada',
-        'pecas'     => 12,
-        'ultima'    => 'Resumo ao cliente · ontem',
-    ],
-    [
-        'nome'      => 'Nexus Participações S.A.',
-        'documento' => 'CNPJ 21.760.884/0001-05',
-        'processo'  => 'Consultivo — sem distribuição',
-        'area'      => 'Empresarial',
-        'vara'      => 'Assessoria contratual',
-        'situacao'  => 'Auditoria concluída',
-        'pecas'     => 4,
-        'ultima'    => 'Parecer contratual · ontem',
-    ],
-    [
-        'nome'      => 'Condomínio Alto das Palmas',
-        'documento' => 'CNPJ 33.918.472/0001-88',
-        'processo'  => '2087654-31.2026.8.26.0000',
-        'area'      => 'Cível',
-        'vara'      => '12.ª Câmara de Direito Privado — TJSP',
-        'situacao'  => 'Agravo em análise',
-        'pecas'     => 7,
-        'ultima'    => 'Agravo de instrumento · ontem',
-    ],
-    [
-        'nome'      => 'Rodrigo Peixoto Vilela',
-        'documento' => 'CPF 190.554.802-77',
-        'processo'  => '1503112-09.2026.8.26.0602',
-        'area'      => 'Consumidor',
-        'vara'      => '3.ª Vara Cível — Sorocaba/SP',
-        'situacao'  => 'Réplica pendente',
-        'pecas'     => 3,
-        'ultima'    => 'Tutela deferida · há 3 dias',
-    ],
-    [
-        'nome'      => 'Ana Lúcia Ferraz Monteiro',
-        'documento' => 'CPF 605.339.114-20',
-        'processo'  => '0004488-70.2026.8.26.0050',
-        'area'      => 'Penal',
-        'vara'      => '9.ª Vara Criminal — Barra Funda/SP',
-        'situacao'  => 'Resposta apresentada',
-        'pecas'     => 5,
-        'ultima'    => 'Resposta à acusação · há 5 dias',
-    ],
-    [
-        'nome'      => 'Construtora Íris Empreendimentos',
-        'documento' => 'CNPJ 45.221.907/0001-44',
-        'processo'  => '1077321-46.2026.8.26.0100',
-        'area'      => 'Cível',
-        'vara'      => '21.ª Vara Cível — Foro Central/SP',
-        'situacao'  => 'Cumprimento de sentença',
-        'pecas'     => 11,
-        'ultima'    => 'Cálculo homologado · há 6 dias',
-    ],
-];
+// Primeiro acesso: carteira ainda vazia. A estrutura de cada registro fica
+// documentada aqui para quando a persistência entrar:
+// nome, documento, processo, area, vara, situacao, pecas, ultima.
+$clientes = [];
 
+// Os contadores derivam da carteira: com ela vazia, todos exibem zero.
 $resumo = [
-    ['rotulo' => 'Clientes ativos',      'valor' => (string) count($clientes)],
-    ['rotulo' => 'Processos em curso',   'valor' => '7'],
-    ['rotulo' => 'Peças arquivadas',     'valor' => (string) array_sum(array_column($clientes, 'pecas'))],
-    ['rotulo' => 'Prazos nos próximos 7 dias', 'valor' => '4'],
+    ['rotulo' => 'Clientes ativos',            'valor' => (string) count($clientes)],
+    ['rotulo' => 'Processos em curso',         'valor' => (string) count(array_column($clientes, 'processo'))],
+    ['rotulo' => 'Peças arquivadas',           'valor' => (string) array_sum(array_column($clientes, 'pecas'))],
+    ['rotulo' => 'Prazos nos próximos 7 dias', 'valor' => (string) count($clientes)],
 ];
 
 require __DIR__ . '/includes/header-painel.php';
@@ -127,6 +50,25 @@ require __DIR__ . '/includes/header-painel.php';
       </button>
     </div>
   </div>
+
+  <?php if ($clientes === []): ?>
+    <div class="flex min-h-[320px] flex-col items-center justify-center px-8 py-16 text-center">
+      <p class="titulo-secao text-silk/[0.8]">Carteira vazia</p>
+      <p class="mt-5 max-w-[440px] text-[14px] leading-[1.75] text-silver">
+        Nenhum cliente cadastrado na sua carteira. Cadastre um cliente ou gere uma nova
+        peça para popular este espaço.
+      </p>
+      <div class="mt-9 flex flex-col gap-3 sm:flex-row">
+        <button type="button" class="btn-ouro rounded-md px-7 py-3 text-[14px] font-semibold">
+          Cadastrar cliente
+        </button>
+        <a href="gerador-de-pecas.php" class="btn-contorno rounded-md px-7 py-3 text-center text-[14px] font-medium">
+          Gerar nova peça
+        </a>
+      </div>
+      <span class="mt-10 block h-px w-14 bg-gold/30"></span>
+    </div>
+  <?php else: ?>
 
   <!-- Tabela (desktop) -->
   <div class="hidden overflow-x-auto lg:block">
@@ -216,15 +158,14 @@ require __DIR__ . '/includes/header-painel.php';
   </div>
 
   <div class="border-t border-gold/[0.1] px-6 py-5 sm:px-7">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <p class="text-[12px] text-silver/70">
-        Registros fictícios exibidos para demonstração da interface.
-      </p>
+    <div class="flex justify-end">
       <a href="gerador-de-pecas.php" class="link-seta text-[12.5px] uppercase tracking-[0.16em] text-gold">
         Gerar peça para um cliente <span class="seta ml-1">&rarr;</span>
       </a>
     </div>
   </div>
+
+  <?php endif; ?>
 </section>
 
 <?php require __DIR__ . '/includes/footer-painel.php'; ?>

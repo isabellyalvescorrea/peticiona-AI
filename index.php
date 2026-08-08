@@ -19,9 +19,15 @@ require __DIR__ . '/includes/header-publico.php';
   <section id="portal-juris" class="relative overflow-hidden textura-navy pt-[72px]">
     <div class="textura-malha pointer-events-none absolute inset-0 opacity-70"></div>
 
-    <!-- Camada ambiente de linhas fluídas, atrás do conteúdo, em toda largura. -->
-    <div class="pointer-events-none absolute inset-x-0 bottom-0 h-[46%] select-none" aria-hidden="true">
-      <?php arte_ondas(); ?>
+    <!-- Curvas ambientes, uma família em cada lateral. A escala acompanha o
+         espaço livre ao lado do bloco de texto centralizado. -->
+    <div class="ondas-laterais pointer-events-none absolute inset-0 select-none" aria-hidden="true">
+      <div class="arte-lateral absolute left-0 top-[52%] -translate-y-1/2">
+        <?php arte_ondas_esquerda(); ?>
+      </div>
+      <div class="arte-lateral absolute right-0 top-[52%] -translate-y-1/2">
+        <?php arte_ondas_direita(); ?>
+      </div>
     </div>
 
     <div class="relative mx-auto flex min-h-[calc(100vh-72px)] max-w-[1400px] flex-col px-5 pb-9 pt-6 sm:px-8 lg:pb-10 lg:pt-10">
