@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "peticiona-ai",
+      "runtimeExecutable": "php",
+      "runtimeArgs": ["-S", "localhost:8123", "-t", "."],
+      "port": 8123
+    }
+  ]
+}

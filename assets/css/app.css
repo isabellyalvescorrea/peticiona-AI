@@ -1,0 +1,395 @@
+/* ==========================================================================
+   Peticiona AI — Acabamento visual de alto luxo
+   Complementa o Tailwind com detalhes que não se expressam bem em utilitários:
+   texturas de fundo, filetes de ouro, micro-interações e animações do acervo
+   vetorial do Hero. Sem ícones — apenas tipografia, filetes e luz.
+   ========================================================================== */
+
+:root {
+  --navy: #0B132B;   /* Azul Marinho Nobre — fundo global */
+  --panel: #13203F;  /* Superfície de cards, um degrau acima do fundo */
+  --navy-fundo: #070C1B; /* Tom mais profundo para trilhos e recuos */
+  --gold: #E2D4A8;
+  --gold-dim: rgba(226, 212, 168, 0.2);
+  --gold-line: rgba(226, 212, 168, 0.14);
+  --sapphire: #38BDF8;
+  --silver: #94A3B8;
+}
+
+/* --- Base ---------------------------------------------------------------- */
+
+html.scroll-suave {
+  scroll-behavior: smooth;
+  scroll-padding-top: 84px; /* compensa o header fixo ao ancorar seções */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.scroll-suave { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+body {
+  overflow-x: hidden; /* trava definitiva contra overflow lateral no mobile */
+  text-rendering: optimizeLegibility;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--navy-fundo); }
+::-webkit-scrollbar-thumb {
+  background: rgba(226, 212, 168, 0.18);
+  border-radius: 99px;
+  border: 2px solid var(--navy-fundo);
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(226, 212, 168, 0.34); }
+
+:focus-visible {
+  outline: 1px solid var(--gold);
+  outline-offset: 3px;
+}
+
+/* --- Tipografia de marca ------------------------------------------------- */
+
+.rotulo-secao {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+
+/* Filete curto que acompanha os rótulos de seção. */
+.filete-rotulo::before,
+.filete-rotulo::after {
+  content: '';
+  display: block;
+  width: 46px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+}
+
+.titulo-editorial {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 500;
+  line-height: 1.12;
+}
+
+/* Título do Hero: escala proporcional ao viewport, calibrada pelo protótipo
+   (≈34px a 1264px de largura), com teto para monitores grandes. */
+.hero-titulo {
+  font-size: clamp(1.65rem, 2.72vw, 2.75rem);
+  line-height: 1.3;
+  letter-spacing: -0.012em;
+}
+
+/* Título de seção: mesma família sans do Hero, um degrau abaixo em escala. */
+.titulo-secao {
+  font-size: clamp(1.55rem, 2.45vw, 2.4rem);
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  font-weight: 700;
+}
+
+/* Numeração romana / ordinal dos cards — puro texto, sem ícone. */
+.ordinal {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-variant-numeric: lining-nums;
+  letter-spacing: 0.14em;
+}
+
+/* --- Superfícies --------------------------------------------------------- */
+
+/* Textura sutil de fundo: brilho superior + malha de linhas quase invisível. */
+.textura-navy {
+  background-color: var(--navy);
+  background-image:
+    radial-gradient(1200px 520px at 50% -8%, rgba(226, 212, 168, 0.055), transparent 62%),
+    radial-gradient(900px 480px at 88% 12%, rgba(56, 189, 248, 0.05), transparent 60%);
+}
+
+.textura-malha {
+  background-image:
+    linear-gradient(rgba(226, 212, 168, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(226, 212, 168, 0.028) 1px, transparent 1px);
+  background-size: 76px 76px;
+}
+
+/* Cartão padrão do sistema — permanece um degrau acima do Azul Marinho de fundo. */
+.cartao {
+  position: relative;
+  background: linear-gradient(160deg, rgba(24, 37, 72, 0.95), rgba(14, 23, 50, 0.9));
+  border: 1px solid var(--gold-line);
+  transition: border-color 0.45s ease, transform 0.45s ease, box-shadow 0.45s ease, background 0.45s ease;
+}
+
+.cartao:hover {
+  border-color: rgba(226, 212, 168, 0.42);
+  transform: translateY(-4px);
+  box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(226, 212, 168, 0.06);
+}
+
+/* Fio de luz que corre no topo do cartão no hover. */
+.cartao-fio::after {
+  content: '';
+  position: absolute;
+  inset: -1px auto auto -1px;
+  width: calc(100% + 2px);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0;
+  transform: scaleX(0.25);
+  transition: opacity 0.5s ease, transform 0.7s ease;
+}
+
+.cartao-fio:hover::after {
+  opacity: 0.9;
+  transform: scaleX(1);
+}
+
+/* --- Botões -------------------------------------------------------------- */
+
+.btn-ouro {
+  background: linear-gradient(180deg, #F2E9CE 0%, #E2D4A8 48%, #CBB983 100%);
+  color: #070A12;
+  border: 1px solid rgba(255, 250, 230, 0.55);
+  box-shadow:
+    0 0 30px rgba(226, 212, 168, 0.24),
+    0 14px 40px -16px rgba(226, 212, 168, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: transform 0.35s ease, box-shadow 0.35s ease, filter 0.35s ease;
+}
+
+.btn-ouro:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+  box-shadow:
+    0 0 46px rgba(226, 212, 168, 0.38),
+    0 18px 48px -14px rgba(226, 212, 168, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.btn-ouro:active { transform: translateY(0); }
+
+/* Seta em caractere tipográfico — desliza no hover. */
+.btn-ouro .seta,
+.link-seta .seta {
+  display: inline-block;
+  transition: transform 0.35s ease;
+}
+
+.btn-ouro:hover .seta,
+.link-seta:hover .seta { transform: translateX(5px); }
+
+.btn-contorno {
+  border: 1px solid rgba(226, 212, 168, 0.34);
+  background: rgba(226, 212, 168, 0.03);
+  color: #F8FAFC;
+  transition: border-color 0.35s ease, background 0.35s ease, transform 0.35s ease, box-shadow 0.35s ease;
+}
+
+.btn-contorno:hover {
+  border-color: rgba(226, 212, 168, 0.75);
+  background: rgba(226, 212, 168, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 34px -20px rgba(226, 212, 168, 0.6);
+}
+
+/* --- Navegação ----------------------------------------------------------- */
+
+/* Sublinhado que cresce do centro — micro-interação, sem ícone. */
+.link-nav {
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+.link-nav::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -7px;
+  height: 1px;
+  background: var(--gold);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.link-nav:hover { color: var(--gold); }
+.link-nav:hover::after { transform: scaleX(1); }
+
+/* Seção atualmente visível. Dois seletores de classe vencem qualquer utilitário
+   de cor do Tailwind, independentemente da ordem em que ele for emitido. */
+.link-nav.link-ativo {
+  color: var(--gold);
+  text-shadow: 0 0 18px rgba(226, 212, 168, 0.35);
+}
+
+.link-nav.link-ativo::after { transform: scaleX(1); }
+
+/* Botão hambúrguer construído com filetes — nenhuma biblioteca de ícones. */
+.filete-menu {
+  display: block;
+  width: 20px;
+  height: 1px;
+  background: var(--gold);
+  transition: transform 0.35s ease, opacity 0.25s ease;
+}
+
+.menu-aberto .filete-menu:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.menu-aberto .filete-menu:nth-child(2) { opacity: 0; }
+.menu-aberto .filete-menu:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+/* --- Acervo vetorial do Hero -------------------------------------------- */
+
+.arte-hero {
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Escala das artes laterais.
+   A largura não é um valor fixo por breakpoint: ela é derivada do espaço livre
+   ao lado do bloco de texto centralizado, para o desenho crescer o quanto der
+   preservando uma folga constante (~40px). Dois limites concorrem — acima de
+   ~1280px quem manda é o título; abaixo disso, o subtítulo (max-w 660px), que
+   é o elemento mais largo. O min() resolve os dois de uma vez. */
+.arte-lateral {
+  width: clamp(210px, min(36vw - 59px, 74vw - 548px), 620px);
+  aspect-ratio: 350 / 380;
+}
+
+/* Respiração lenta da luz sob a balança e sob o tribunal. */
+@keyframes pulso-luz {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+.luz-base { animation: pulso-luz 6s ease-in-out infinite; transform-origin: center; }
+
+/* Pontos de circuito acendendo em cadência. */
+@keyframes brilho-no {
+  0%, 100% { opacity: 0.25; }
+  50%      { opacity: 1; }
+}
+
+.no-circuito { animation: brilho-no 4.5s ease-in-out infinite; }
+.no-circuito:nth-of-type(2n) { animation-delay: 1.1s; }
+.no-circuito:nth-of-type(3n) { animation-delay: 2.3s; }
+
+/* Ondas de fundo deslizando de leve. */
+@keyframes deriva-onda {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(10px); }
+}
+
+.onda { animation: deriva-onda 14s ease-in-out infinite; }
+.onda:nth-of-type(even) { animation-duration: 18s; animation-direction: reverse; }
+
+/* --- Entrada em cena ----------------------------------------------------- */
+
+.revelar {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1), transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.revelar.visivel {
+  opacity: 1;
+  transform: none;
+}
+
+/* --- Estados de processamento ------------------------------------------- */
+
+/* Reticências de "processando" em três pontos tipográficos. */
+@keyframes salto-ponto {
+  0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+  30%           { opacity: 1;    transform: translateY(-4px); }
+}
+
+.ponto-carga { animation: salto-ponto 1.25s ease-in-out infinite; }
+.ponto-carga:nth-child(2) { animation-delay: 0.16s; }
+.ponto-carga:nth-child(3) { animation-delay: 0.32s; }
+
+/* --- Folha virtual (Gerador de Peças) ----------------------------------- */
+
+.folha-virtual {
+  background: #FBFAF6;
+  color: #1B1B1B;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  box-shadow: 0 40px 90px -40px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(226, 212, 168, 0.16);
+  line-height: 1.75;
+}
+
+.folha-virtual p { text-align: justify; text-indent: 2.2rem; }
+.folha-virtual .sem-recuo { text-indent: 0; }
+
+/* --- Formulários --------------------------------------------------------- */
+
+.campo {
+  background: rgba(7, 12, 27, 0.7);
+  border: 1px solid rgba(226, 212, 168, 0.16);
+  color: #F8FAFC;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+}
+
+.campo::placeholder { color: rgba(148, 163, 184, 0.55); }
+
+.campo:focus {
+  outline: none;
+  border-color: rgba(226, 212, 168, 0.6);
+  background: rgba(7, 12, 27, 0.92);
+  box-shadow: 0 0 0 3px rgba(226, 212, 168, 0.09);
+}
+
+select.campo {
+  appearance: none;
+  /* Divisa em caractere tipográfico, desenhada em CSS — sem SVG de ícone. */
+  background-image: linear-gradient(45deg, transparent 50%, rgba(226, 212, 168, 0.7) 50%),
+                    linear-gradient(135deg, rgba(226, 212, 168, 0.7) 50%, transparent 50%);
+  background-position: calc(100% - 20px) calc(50% + 2px), calc(100% - 14px) calc(50% + 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 44px;
+}
+
+/* --- Tabelas do painel --------------------------------------------------- */
+
+.tabela-luxo th {
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.85);
+  font-weight: 500;
+}
+
+.tabela-luxo tbody tr {
+  transition: background 0.3s ease;
+  border-top: 1px solid rgba(226, 212, 168, 0.09);
+}
+
+.tabela-luxo tbody tr:hover { background: rgba(226, 212, 168, 0.045); }
+
+/* --- Utilidades ---------------------------------------------------------- */
+
+.divisa-vertical { border-left: 1px solid rgba(226, 212, 168, 0.13); }
+
+.texto-ouro-degrade {
+  background: linear-gradient(180deg, #F5EDD6, #E2D4A8 58%, #C6B37F);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Barra de progresso em filete — usada nos indicadores do painel. */
+.filete-progresso {
+  height: 2px;
+  background: rgba(226, 212, 168, 0.12);
+  overflow: hidden;
+}
+
+.filete-progresso span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(226, 212, 168, 0.35), var(--gold));
+}
