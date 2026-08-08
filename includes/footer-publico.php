@@ -80,9 +80,15 @@ require_once __DIR__ . '/config.php';
                 aria-label="Fechar">&times;</button>
       </div>
 
-      <p class="mt-4 text-[13.5px] leading-relaxed text-silver">
-        Protótipo visual: as credenciais não são validadas. Prossiga para conhecer o painel do advogado.
-      </p>
+      <!-- Aviso ao avaliador: precisa ler antes dos campos, então ganha
+           tratamento de destaque em vez de nota discreta. -->
+      <div class="mt-5 rounded-md border border-gold/[0.35] bg-gold/[0.07] px-4 py-4">
+        <p class="text-[13.5px] font-medium leading-[1.65] text-silk">
+          Demonstração do login do advogado, não é necessário inserir as credenciais
+          para fins de teste do avaliador.
+          <span class="text-gold">Clique direto em entrar no painel para acessar o sistema</span>
+        </p>
+      </div>
 
       <form class="mt-7 space-y-4" action="dashboard.php" method="get">
         <div>
@@ -100,10 +106,6 @@ require_once __DIR__ . '/config.php';
           Entrar no Painel <span class="seta ml-1">&rarr;</span>
         </button>
       </form>
-
-      <p class="mt-6 border-t border-gold/[0.1] pt-5 text-center text-[12px] text-silver/70">
-        Primeiro acesso? <span class="text-gold">Solicite uma demonstração guiada.</span>
-      </p>
     </div>
   </div>
 </div>
