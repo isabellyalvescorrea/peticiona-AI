@@ -17,9 +17,11 @@ dist/
 build/
 
 # Ambiente
-.env
-.env.*
+.env*
 !.env.example
+
+# Vercel — vínculo local do projeto, gerado por `vercel link`
+.vercel
 
 # Logs e temporários
 *.log
