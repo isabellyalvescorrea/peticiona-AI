@@ -10,9 +10,9 @@
  * a publicou.
  *
  * A chave vem da variável de ambiente GEMINI_API_KEY, configurada no painel da
- * Vercel. Enquanto ela não existir, o endpoint responde em modo simulado, com
- * a flag "simulado": true — o que permite exercitar o fluxo inteiro (payload,
- * renderização, gravação em JSON, recálculo do painel) sem chave nenhuma.
+ * Vercel. Não há modo simulado: faltando a chave, ou falhando a chamada, o
+ * endpoint responde com erro explícito — nunca com um texto plausível que
+ * pudesse ser confundido com produção da IA.
  */
 
 declare(strict_types=1);
@@ -26,8 +26,13 @@ ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 error_reporting(E_ALL);
 
-/** Sobrescrevível pela variável de ambiente GEMINI_MODEL. */
-const MODELO_PADRAO = 'gemini-2.5-flash';
+/**
+ * Sobrescrevível pela variável de ambiente GEMINI_MODEL.
+ *
+ * gemini-2.5-flash foi aposentado para novos usuários e devolve 404. Quando
+ * este também for, GET ?modelos=1 lista o que a chave enxerga no momento.
+ */
+const MODELO_PADRAO = 'gemini-3.6-flash';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -109,25 +114,18 @@ if (!in_array($tarefa, ['peca', 'auditoria'], true)) {
 }
 
 /* ------------------------------------------------------------------------
-   Modo simulado — enquanto não houver chave configurada
+   Chamada real ao Gemini
+
+   Sem simulação: se a chave faltar, o endpoint diz isso em vez de devolver um
+   texto plausível que passaria por resposta da IA.
    ------------------------------------------------------------------------ */
 
 if ($chave === '') {
-    require_once __DIR__ . '/../includes/simulacao-gemini.php';
-
     responder([
-        'simulado'  => true,
-        'modelo'    => $modelo,
-        'tarefa'    => $tarefa,
-        'texto'     => resposta_simulada($tarefa, $entrada),
-        'aviso'     => 'GEMINI_API_KEY não configurada. Resposta gerada localmente para validação do fluxo.',
-        'recebidoEm'=> gmdate('c'),
-    ]);
+        'erro' => 'GEMINI_API_KEY não está configurada no ambiente. ' .
+                  'Defina-a em Vercel → Settings → Environment Variables e refaça o deploy.',
+    ], 503);
 }
-
-/* ------------------------------------------------------------------------
-   Chamada real
-   ------------------------------------------------------------------------ */
 
 $url = sprintf(
     'https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent',
@@ -150,7 +148,9 @@ $ch = curl_init($url);
 curl_setopt_array($ch, [
     CURLOPT_POST           => true,
     CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT        => 60,
+    // Abaixo do maxDuration da função (60 s), para que um Gemini lento vire
+    // um JSON de erro legível em vez de um corte seco da plataforma.
+    CURLOPT_TIMEOUT        => 52,
     CURLOPT_HTTPHEADER     => [
         'Content-Type: application/json',
         'x-goog-api-key: ' . $chave,
@@ -192,7 +192,6 @@ if (trim($texto) === '') {
 }
 
 responder([
-    'simulado'   => false,
     'modelo'     => $modelo,
     'tarefa'     => $tarefa,
     'texto'      => $texto,

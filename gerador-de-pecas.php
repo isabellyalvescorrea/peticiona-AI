@@ -163,8 +163,8 @@ require __DIR__ . '/includes/header-painel.php';
             </button>
           </div>
 
-          <p data-aviso-simulacao
-             class="hidden rounded-md border border-sapphire/30 bg-sapphire/[0.06] px-4 py-3 text-[12.5px] leading-relaxed text-slate-200"></p>
+          <p data-info-modelo
+             class="hidden text-[11.5px] leading-relaxed text-silver/70"></p>
         </div>
 
         <div class="mt-6 border-t border-gold/[0.1] pt-5">

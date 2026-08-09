@@ -72,6 +72,7 @@ require __DIR__ . '/includes/header-painel.php';
         Cole a minuta ao lado e acione <span class="text-gold">Auditar Contrato</span>.
         O parecer será organizado em riscos críticos, cláusulas ausentes e recomendações.
       </p>
+      <p data-erro class="mt-6 hidden max-w-[460px] text-[13px] leading-relaxed text-sapphire"></p>
       <span class="mt-8 block h-px w-16 bg-gold/30"></span>
     </div>
 
@@ -111,8 +112,8 @@ require __DIR__ . '/includes/header-painel.php';
             </button>
           </div>
 
-          <p data-aviso-simulacao
-             class="hidden rounded-md border border-sapphire/30 bg-sapphire/[0.06] px-4 py-3 text-[12.5px] leading-relaxed text-slate-200"></p>
+          <p data-info-modelo
+             class="hidden text-[11.5px] leading-relaxed text-silver/70"></p>
         </div>
       </div>
     </div>

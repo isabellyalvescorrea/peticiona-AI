@@ -7,10 +7,8 @@
      3. renderização do texto retornado na área de leitura
      4. gravação em JSON no localStorage e recálculo do Dashboard
 
-   Enquanto GEMINI_API_KEY não estiver configurada na Vercel, o endpoint
-   devolve resposta simulada com a flag "simulado" — o fluxo inteiro roda
-   igual, o que permite validar payload, renderização e persistência antes
-   de existir qualquer chave.
+   A chave vive apenas no servidor. Falha na chamada é exibida como falha:
+   não há resposta de reserva que pudesse passar por produção da IA.
    ========================================================================== */
 
 (function (global) {
@@ -104,17 +102,27 @@
   function mostrar(el) { if (el) el.classList.remove('hidden'); }
   function ocultar(el) { if (el) el.classList.add('hidden'); }
 
-  function marcarSimulacao(container, corpo) {
+  /** Registra na tela qual modelo produziu o texto e o custo em tokens. */
+  function informarModelo(container, corpo) {
     if (!container) return;
-    var aviso = container.querySelector('[data-aviso-simulacao]');
-    if (!aviso) return;
-    if (corpo && corpo.simulado) {
-      aviso.textContent = 'Resposta simulada — GEMINI_API_KEY ainda não configurada. ' +
-                          'O fluxo de dados, a persistência e a exportação são reais.';
-      mostrar(aviso);
-    } else {
-      ocultar(aviso);
-    }
+    var alvo = container.querySelector('[data-info-modelo]');
+    if (!alvo || !corpo) return;
+
+    var partes = ['Composto por ' + (corpo.modelo || 'Gemini')];
+    var tokens = corpo.uso && corpo.uso.totalTokenCount;
+    if (tokens) partes.push(tokens.toLocaleString('pt-BR') + ' tokens');
+
+    alvo.textContent = partes.join(' · ');
+    mostrar(alvo);
+  }
+
+  /** Mostra a falha onde o usuário está olhando, além do console. */
+  function relatarErro(vazio, mensagem) {
+    if (!vazio) return;
+    var m = vazio.querySelector('[data-erro]');
+    if (!m) return;
+    m.textContent = mensagem;
+    mostrar(m);
   }
 
   /* ---------------------------------------------------------------------
@@ -170,13 +178,13 @@
           }
           mostrar(folha); mostrar(acoes);
           global.PeticionaPDF.ajustarPrevia();
-          marcarSimulacao(acoes, resposta);
+          informarModelo(acoes, resposta);
 
           var peca = Dados.salvarPeca({
             titulo:         resumirTitulo(entrada.fatos) || entrada.tipoPeca,
             tipoPeca:       entrada.tipoPeca,
             cliente:        primeiroNome(entrada.autor),
-            status:         resposta.simulado ? 'Gerada (simulação)' : 'Gerada',
+            status:         'Gerada',
             conteudoGerado: resposta.texto
           });
 
@@ -193,10 +201,7 @@
         .catch(function (erro) {
           ocultar(carga);
           mostrar(vazio);
-          if (vazio) {
-            var m = vazio.querySelector('[data-erro]');
-            if (m) { m.textContent = 'Não foi possível gerar a peça: ' + erro.message; mostrar(m); }
-          }
+          relatarErro(vazio, 'Não foi possível gerar a peça: ' + erro.message);
           console.error('[Peticiona] Falha na geração:', erro);
         })
         .then(function () { botao.disabled = false; });
@@ -246,7 +251,7 @@
           if (corpo) corpo.innerHTML = global.PeticionaPDF.markdownParaHTML(resposta.texto);
           mostrar(saida);
           global.PeticionaPDF.ajustarPrevia();
-          marcarSimulacao(saida, resposta);
+          informarModelo(saida, resposta);
 
           var auditoria = Dados.salvarAuditoria({
             contrato:          entrada.contrato,
@@ -265,6 +270,7 @@
         .catch(function (erro) {
           ocultar(carga);
           mostrar(vazio);
+          relatarErro(vazio, 'Não foi possível auditar o contrato: ' + erro.message);
           console.error('[Peticiona] Falha na auditoria:', erro);
         })
         .then(function () { botao.disabled = false; });
