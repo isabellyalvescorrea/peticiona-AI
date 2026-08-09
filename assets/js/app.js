@@ -1,6 +1,9 @@
 /* ==========================================================================
-   Peticiona AI — Comportamento do protótipo (100% front-end).
-   Nenhuma requisição de rede, nenhuma API: todas as respostas são mockadas.
+   Peticiona AI — Comportamento de interface (navegação, revelações, filtros).
+
+   A geração de peças, a auditoria de contratos e a exportação em PDF vivem em
+   gemini.js, dados.js e pdf-juridico.js, carregados apenas nas telas que os
+   usam. Este arquivo cuida do que é comum a todas.
    ========================================================================== */
 
 (function () {
@@ -231,57 +234,20 @@
   })();
 
   /* ---------------------------------------------------------------------
-     6. Gerador de Peças — pré-visualização mockada
+     6. Exportações ainda não implementadas (.docx e WhatsApp)
+
+     O PDF é real e vive em pdf-juridico.js. Estes dois formatos ainda não
+     existem, e o botão diz isso em vez de fingir que baixou algo.
      --------------------------------------------------------------------- */
-  (function geradorPecas() {
-    var botao = $('#gerar-peca');
-    if (!botao) return;
-
-    var vazio    = $('#peca-vazia');
-    var carga    = $('#peca-carregando');
-    var folha    = $('#peca-folha');
-    var acoes    = $('#peca-acoes');
-
-    botao.addEventListener('click', function () {
-      if (vazio) vazio.classList.add('hidden');
-      if (folha) folha.classList.add('hidden');
-      if (acoes) acoes.classList.add('hidden');
-      if (carga) carga.classList.remove('hidden');
-
-      window.setTimeout(function () {
-        if (carga) carga.classList.add('hidden');
-        if (folha) folha.classList.remove('hidden');
-        if (acoes) acoes.classList.remove('hidden');
-
-        // Reflete no papel os campos preenchidos, quando houver.
-        var pares = [
-          ['#campo-tipo',   '[data-eco="tipo"]'],
-          ['#campo-autor',  '[data-eco="autor"]'],
-          ['#campo-reu',    '[data-eco="reu"]'],
-          ['#campo-fatos',  '[data-eco="fatos"]'],
-          ['#campo-pedidos','[data-eco="pedidos"]']
-        ];
-        pares.forEach(function (par) {
-          var origem = $(par[0]);
-          var destino = $(par[1]);
-          if (!origem || !destino) return;
-          var valor = (origem.value || '').trim();
-          if (valor) destino.textContent = valor;
-        });
-
-        if (folha) folha.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 1100);
-    });
-
-    // Botões de exportação: apenas sinalizam a ação (protótipo).
-    $$('[data-exportar]').forEach(function (b) {
+  (function exportacoesPendentes() {
+    $$('[data-exportar-pendente]').forEach(function (b) {
       b.addEventListener('click', function () {
-        var rotuloOriginal = b.getAttribute('data-rotulo') || b.textContent.trim();
-        b.setAttribute('data-rotulo', rotuloOriginal);
-        b.textContent = 'Protótipo — sem exportação';
+        var rotulo = b.getAttribute('data-rotulo') || b.textContent.trim();
+        b.setAttribute('data-rotulo', rotulo);
+        b.textContent = 'Formato ainda não disponível';
         b.disabled = true;
         window.setTimeout(function () {
-          b.textContent = rotuloOriginal;
+          b.textContent = rotulo;
           b.disabled = false;
         }, 1800);
       });
@@ -289,68 +255,40 @@
   })();
 
   /* ---------------------------------------------------------------------
-     7. Analisador de Contratos — resultado mockado
-     --------------------------------------------------------------------- */
-  (function analisadorContratos() {
-    var botao = $('#analisar-contrato');
-    if (!botao) return;
+     7. Meus Clientes — filtro local da listagem
 
-    var vazio = $('#analise-vazia');
-    var carga = $('#analise-carregando');
-    var saida = $('#analise-resultado');
-
-    botao.addEventListener('click', function () {
-      if (vazio) vazio.classList.add('hidden');
-      if (saida) saida.classList.add('hidden');
-      if (carga) carga.classList.remove('hidden');
-
-      window.setTimeout(function () {
-        if (carga) carga.classList.add('hidden');
-        if (saida) {
-          saida.classList.remove('hidden');
-          $$('.revelar', saida).forEach(function (el, i) {
-            window.setTimeout(function () { el.classList.add('visivel'); }, i * 110);
-          });
-        }
-      }, 1200);
-    });
-
-    var limpar = $('#limpar-contrato');
-    if (limpar) {
-      limpar.addEventListener('click', function () {
-        var campo = $('#campo-contrato');
-        if (campo) campo.value = '';
-        if (saida) saida.classList.add('hidden');
-        if (carga) carga.classList.add('hidden');
-        if (vazio) vazio.classList.remove('hidden');
-      });
-    }
-  })();
-
-  /* ---------------------------------------------------------------------
-     8. Meus Clientes — filtro local da listagem
+     As linhas são desenhadas por dados.js a partir do localStorage, então a
+     consulta ao DOM acontece a cada digitação: guardar a lista numa variável
+     deixaria o filtro cego para tudo que fosse cadastrado depois da carga.
      --------------------------------------------------------------------- */
   (function filtroClientes() {
     var campo = $('#filtro-clientes');
     if (!campo) return;
 
-    var linhas = $$('[data-cliente]');
     var contador = $('#contador-clientes');
 
-    campo.addEventListener('input', function () {
+    function filtrar() {
       var termo = campo.value.trim().toLowerCase();
       var visiveis = 0;
 
-      linhas.forEach(function (linha) {
+      $$('[data-cliente]').forEach(function (linha) {
         var texto = (linha.getAttribute('data-cliente') || '').toLowerCase();
         var casa = !termo || texto.indexOf(termo) !== -1;
         linha.classList.toggle('hidden', !casa);
         if (casa) visiveis++;
       });
 
-      if (contador) {
+      // Com a busca vazia o total volta a ser dito por dados.js, que conhece
+      // a carteira inteira; aqui só se informa o resultado da filtragem.
+      if (contador && termo) {
         contador.textContent = visiveis + (visiveis === 1 ? ' registro' : ' registros');
       }
+    }
+
+    campo.addEventListener('input', filtrar);
+    // Redesenhos da carteira precisam reaplicar o filtro em vigor.
+    doc.addEventListener('peticiona:dados', function () {
+      if (campo.value.trim()) window.setTimeout(filtrar, 0);
     });
   })();
 })();

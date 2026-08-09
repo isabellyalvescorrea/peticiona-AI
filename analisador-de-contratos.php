@@ -1,48 +1,23 @@
 <?php
-/** Painel — Analisador de Contratos (protótipo visual: resultado fixo e demonstrativo). */
+/** Painel — Analisador de Contratos (parecer composto pela IA). */
 require_once __DIR__ . '/includes/config.php';
 
 $pagina_titulo    = 'Analisador de Contratos — ' . APP_NAME;
 $painel_titulo    = 'Analisador de Contratos';
 $painel_subtitulo = 'Auditoria de cláusulas, riscos de litígio e recomendações de redação';
 
-$riscos = [
-    [
-        'clausula' => 'Cláusula 7.ª — Rescisão',
-        'grau'     => 'Crítico',
-        'texto'    => 'Prevê rescisão unilateral imotivada por apenas uma das partes, sem aviso prévio e sem contrapartida indenizatória, o que caracteriza potestatividade vedada pelo art. 122 do Código Civil.',
-    ],
-    [
-        'clausula' => 'Cláusula 12.ª — Foro de eleição',
-        'grau'     => 'Alto',
-        'texto'    => 'Elege comarca distante do domicílio da parte aderente em contrato de adesão, hipótese em que a jurisprudência reconhece a abusividade e admite a declinação de ofício.',
-    ],
-    [
-        'clausula' => 'Cláusula 15.ª — Multa moratória',
-        'grau'     => 'Médio',
-        'texto'    => 'Estipula multa de 20% sobre o valor total do contrato, percentual superior ao limite consolidado para relações de consumo e passível de redução equitativa pelo juízo.',
-    ],
-];
-
-$ausencias = [
-    ['titulo' => 'Cláusula de confidencialidade',   'texto' => 'Não há disciplina do tratamento de informações sensíveis trocadas durante a execução, expondo ambas as partes a vazamentos sem consequência contratual.'],
-    ['titulo' => 'Conformidade com a LGPD',         'texto' => 'Ausente a definição de papéis de controlador e operador, bem como das bases legais de tratamento exigidas pela Lei n.º 13.709/2018.'],
-    ['titulo' => 'Critério de reajuste',            'texto' => 'O contrato é silente quanto ao índice e à periodicidade de correção do preço, o que tende a gerar litígio em contratações de trato sucessivo.'],
-    ['titulo' => 'Método de solução de conflitos',  'texto' => 'Não há previsão de mediação prévia ou arbitragem, alternativas que reduzem custo e tempo de resolução em contratos empresariais.'],
-];
-
-$recomendacoes = [
-    'Condicionar a rescisão imotivada a aviso prévio mínimo de 30 (trinta) dias e a multa compensatória proporcional ao prazo remanescente.',
-    'Substituir o foro de eleição pelo domicílio do aderente, prevenindo declaração de nulidade e deslocamento posterior do feito.',
-    'Reduzir a multa moratória a 2% sobre a parcela inadimplida, com juros de mora de 1% ao mês, em harmonia com a prática consolidada.',
-    'Inserir capítulo próprio de proteção de dados, com definição de papéis, finalidade, prazo de retenção e obrigações em caso de incidente.',
-    'Incluir cláusula escalonada de solução de controvérsias, com negociação direta, mediação e, subsidiariamente, arbitragem.',
+$estilos_extra = [asset('assets/css/pdf-juridico.css')];
+$scripts_extra = [
+    'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
+    asset('assets/js/dados.js'),
+    asset('assets/js/pdf-juridico.js'),
+    asset('assets/js/gemini.js'),
 ];
 
 require __DIR__ . '/includes/header-painel.php';
 ?>
 
-<div class="grid gap-5 min-[1180px]:grid-cols-[minmax(0,380px)_1fr] xl:grid-cols-[minmax(0,430px)_1fr]">
+<div class="grid grid-cols-[minmax(0,1fr)] gap-5 min-[1180px]:grid-cols-[minmax(0,380px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,430px)_minmax(0,1fr)]">
 
   <!-- ====================== Entrada ====================== -->
   <section class="cartao revelar overflow-hidden rounded-lg" aria-label="Minuta contratual">
@@ -111,98 +86,40 @@ require __DIR__ . '/includes/header-painel.php';
       </p>
     </div>
 
-    <!-- Parecer -->
+    <!-- Parecer: a marcação e as medidas são as mesmas que saem no PDF. -->
     <div id="analise-resultado" class="hidden space-y-5">
-
-      <!-- Síntese -->
-      <div class="cartao revelar overflow-hidden rounded-lg">
-        <div class="h-px w-full bg-gradient-to-r from-transparent via-gold to-transparent"></div>
-        <div class="grid gap-6 px-6 py-6 sm:grid-cols-3 sm:px-7">
-          <?php
-          $sintese = [
-              ['rotulo' => 'Grau de risco global', 'valor' => 'Elevado', 'nota' => '3 pontos críticos identificados'],
-              ['rotulo' => 'Cláusulas analisadas', 'valor' => '18',      'nota' => '4 omissões relevantes'],
-              ['rotulo' => 'Equilíbrio contratual','valor' => '42%',     'nota' => 'desfavorável ao contratante'],
-          ];
-          foreach ($sintese as $i => $s): ?>
-            <div class="<?= $i > 0 ? 'sm:divisa-vertical sm:pl-6' : '' ?>">
-              <p class="text-[10.5px] uppercase tracking-[0.18em] text-silver"><?= e($s['rotulo']) ?></p>
-              <p class="mt-3 text-[30px] font-light leading-none text-gold"><?= e($s['valor']) ?></p>
-              <p class="mt-2.5 text-[12px] text-silver"><?= e($s['nota']) ?></p>
-            </div>
-          <?php endforeach; ?>
-        </div>
+      <div class="previa-folha">
+        <div id="analise-corpo" class="folha-juridica"></div>
       </div>
 
-      <!-- Riscos críticos -->
-      <div class="cartao revelar overflow-hidden rounded-lg">
-        <div class="flex items-center justify-between gap-4 border-b border-gold/[0.1] px-6 py-5 sm:px-7">
-          <h2 class="text-[16px] font-medium text-silk">Riscos Críticos</h2>
-          <span class="rounded-sm border border-gold/40 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-gold">
-            <?= count($riscos) ?> ocorrências
-          </span>
-        </div>
+      <div class="cartao rounded-lg p-6 sm:p-7">
+        <div class="flex flex-col gap-5">
+          <div>
+            <h3 class="text-[16px] font-medium text-silk">Exportar parecer</h3>
+            <p class="mt-1.5 text-[12.5px] text-silver">
+              Documento com formatação forense, pronto para anexar ao dossiê do cliente.
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <button type="button" data-exportar-pdf data-origem="#analise-resultado"
+                    class="btn-ouro grow whitespace-nowrap rounded-md px-5 py-3 text-[13.5px] font-semibold sm:grow-0">
+              Baixar parecer em PDF
+            </button>
+            <button type="button" data-exportar-pendente
+                    class="btn-contorno grow whitespace-nowrap rounded-md px-5 py-3 text-[13.5px] font-medium sm:grow-0">
+              Baixar em Word (.docx)
+            </button>
+          </div>
 
-        <ul>
-          <?php foreach ($riscos as $i => $risco): ?>
-            <li class="<?= $i > 0 ? 'border-t border-gold/[0.07]' : '' ?> px-6 py-5 sm:px-7">
-              <div class="flex flex-wrap items-baseline justify-between gap-3">
-                <p class="text-[14.5px] font-medium text-silk"><?= e($risco['clausula']) ?></p>
-                <span class="rounded-sm border border-sapphire/30 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-sapphire">
-                  <?= e($risco['grau']) ?>
-                </span>
-              </div>
-              <p class="mt-3 text-[13.5px] leading-[1.75] text-silver"><?= e($risco['texto']) ?></p>
-            </li>
-          <?php endforeach; ?>
-        </ul>
-      </div>
-
-      <!-- Cláusulas ausentes -->
-      <div class="cartao revelar overflow-hidden rounded-lg">
-        <div class="border-b border-gold/[0.1] px-6 py-5 sm:px-7">
-          <h2 class="text-[16px] font-medium text-silk">Cláusulas Ausentes</h2>
-          <p class="mt-1 text-[12px] text-silver">Disposições esperadas para esta modalidade contratual</p>
-        </div>
-
-        <div class="grid sm:grid-cols-2">
-          <?php foreach ($ausencias as $i => $item): ?>
-            <div class="px-6 py-5 sm:px-7 <?= $i > 0 ? 'border-t border-gold/[0.07]' : '' ?> <?= $i === 1 ? 'sm:border-t-0' : '' ?> <?= $i % 2 === 1 ? 'sm:divisa-vertical' : '' ?>">
-              <div class="flex items-baseline gap-3">
-                <span class="ordinal text-[11px] text-gold/[0.55]"><?= str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT) ?></span>
-                <p class="text-[14px] font-medium text-silk"><?= e($item['titulo']) ?></p>
-              </div>
-              <p class="mt-2.5 pl-[30px] text-[13px] leading-[1.72] text-silver"><?= e($item['texto']) ?></p>
-            </div>
-          <?php endforeach; ?>
-        </div>
-      </div>
-
-      <!-- Recomendações -->
-      <div class="cartao revelar overflow-hidden rounded-lg">
-        <div class="border-b border-gold/[0.1] px-6 py-5 sm:px-7">
-          <h2 class="text-[16px] font-medium text-silk">Recomendações</h2>
-          <p class="mt-1 text-[12px] text-silver">Redações alternativas sugeridas para reequilibrar o instrumento</p>
-        </div>
-
-        <ol class="px-6 py-6 sm:px-7">
-          <?php foreach ($recomendacoes as $i => $rec): ?>
-            <li class="flex items-baseline gap-4 <?= $i > 0 ? 'mt-4 border-t border-gold/[0.07] pt-4' : '' ?>">
-              <span class="ordinal shrink-0 text-[12px] text-gold"><?= str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT) ?></span>
-              <p class="text-[13.5px] leading-[1.75] text-silver"><?= e($rec) ?></p>
-            </li>
-          <?php endforeach; ?>
-        </ol>
-
-        <div class="border-t border-gold/[0.1] px-6 py-5 sm:px-7">
-          <p class="text-[11.5px] leading-relaxed text-silver/70">
-            Parecer demonstrativo gerado por protótipo de interface. A revisão definitiva compete
-            ao advogado responsável pelo instrumento.
-          </p>
+          <p data-aviso-simulacao
+             class="hidden rounded-md border border-sapphire/30 bg-sapphire/[0.06] px-4 py-3 text-[12.5px] leading-relaxed text-slate-200"></p>
         </div>
       </div>
     </div>
   </section>
 </div>
+
+<!-- Template de compilação do PDF: fora da tela, mas com layout real. -->
+<div id="pdf-template" aria-hidden="true"></div>
 
 <?php require __DIR__ . '/includes/footer-painel.php'; ?>

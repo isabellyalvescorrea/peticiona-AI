@@ -1,0 +1,163 @@
+/* ==========================================================================
+   Peticiona AI — Folha jurídica para exportação em PDF
+
+   Estas regras valem para o template oculto #pdf-template, que o html2pdf.js
+   rasteriza. Elas seguem a praxe forense brasileira e a ABNT: A4, margens
+   30/20/20/30 mm, Times New Roman 12pt, entrelinha 1,5, texto justificado e
+   recuo de 1,5 cm na primeira linha de cada parágrafo.
+
+   As unidades são absolutas (mm, pt, cm) de propósito: rem e px dependeriam
+   do contexto da página, e o que se busca aqui é medida de papel.
+
+   A mesma folha também é usada na pré-visualização em tela (.folha-juridica),
+   para que o advogado veja exatamente o que sairá impresso.
+   ========================================================================== */
+
+#pdf-template {
+  /* Fora da tela, mas com layout real: display:none impediria o html2canvas
+     de medir o conteúdo, e o PDF sairia em branco. */
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 210mm;
+  background: #FFFFFF;
+  z-index: -1;
+}
+
+.folha-juridica {
+  width: 210mm;
+  min-height: 297mm;
+  box-sizing: border-box;
+  background: #FFFFFF;
+  color: #000000;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 12pt;
+  line-height: 1.5;
+  text-align: justify;
+  hyphens: auto;
+}
+
+/* O html2pdf aplica as margens do papel pela própria configuração `margin`;
+   este preenchimento existe para a pré-visualização em tela refletir o
+   mesmo enquadramento. */
+#pdf-template .folha-juridica {
+  padding: 30mm 20mm 20mm 30mm;
+}
+
+/* --- Blocos de texto ------------------------------------------------------ */
+
+.folha-juridica p {
+  text-indent: 1.5cm;
+  margin: 0 0 10pt 0;
+  text-align: justify;
+  orphans: 2;
+  widows: 2;
+}
+
+.folha-juridica p.sem-recuo {
+  text-indent: 0;
+}
+
+/* --- Títulos -------------------------------------------------------------- */
+
+.folha-juridica h1,
+.folha-juridica h2,
+.folha-juridica h3 {
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: bold;
+  text-transform: uppercase;
+  text-indent: 0;
+  margin-top: 18pt;
+  margin-bottom: 8pt;
+  page-break-after: avoid;
+  break-after: avoid;
+}
+
+.folha-juridica h1 { font-size: 14pt; text-align: center; }
+.folha-juridica h2 { font-size: 12pt; text-align: left; }
+.folha-juridica h3 { font-size: 12pt; text-align: left; }
+
+.folha-juridica h1:first-child,
+.folha-juridica h2:first-child {
+  margin-top: 0;
+}
+
+/* --- Citações e doutrina -------------------------------------------------- */
+
+.folha-juridica blockquote {
+  font-size: 10pt;
+  line-height: 1.0;
+  margin: 10pt 0 10pt 4cm;
+  padding: 0;
+  text-align: justify;
+  text-indent: 0;
+  border: 0;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.folha-juridica blockquote p {
+  text-indent: 0;
+  margin: 0;
+  font-size: 10pt;
+  line-height: 1.0;
+}
+
+/* --- Listas --------------------------------------------------------------- */
+
+.folha-juridica ul,
+.folha-juridica ol {
+  margin: 0 0 10pt 0;
+  padding-left: 1.5cm;
+  text-align: justify;
+}
+
+.folha-juridica li {
+  margin-bottom: 4pt;
+  text-indent: 0;
+}
+
+/* --- Ênfases -------------------------------------------------------------- */
+
+.folha-juridica strong { font-weight: bold; }
+.folha-juridica em { font-style: italic; }
+
+/* --- Assinatura ----------------------------------------------------------- */
+
+.folha-juridica .bloco-assinatura {
+  text-align: center;
+  margin-top: 30pt;
+  text-indent: 0;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.folha-juridica .bloco-assinatura .linha-assinatura {
+  display: block;
+  width: 8cm;
+  margin: 0 auto 6pt auto;
+  border-top: 1px solid #000000;
+}
+
+.folha-juridica .bloco-assinatura p {
+  text-indent: 0;
+  text-align: center;
+  margin: 0;
+}
+
+/* --- Pré-visualização em tela --------------------------------------------- */
+
+/* A folha aparece no painel escuro; a sombra separa o papel do fundo sem
+   alterar nenhuma medida do documento. */
+.previa-folha {
+  overflow-x: auto;
+}
+
+/* A redução em telas estreitas é calculada em pdf-juridico.js, a partir da
+   largura real da coluna: um breakpoint fixo erraria a escala sempre que o
+   layout mudasse. Aqui ficam apenas as propriedades constantes. */
+.previa-folha .folha-juridica {
+  margin: 0 auto;
+  padding: 30mm 20mm 20mm 30mm;
+  box-shadow: 0 40px 90px -40px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(226, 212, 168, 0.16);
+}

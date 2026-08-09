@@ -1,12 +1,18 @@
 <?php
 /**
  * <head> compartilhado — Design System do Peticiona AI.
- * $pagina_titulo e $pagina_descricao podem ser definidos antes do include.
+ *
+ * Definíveis antes do include:
+ *   $pagina_titulo, $pagina_descricao
+ *   $estilos_extra  — array de caminhos de CSS adicionais
+ *   $scripts_extra  — array de URLs de JS adicionais (carregados com defer)
  */
 require_once __DIR__ . '/config.php';
 
 $pagina_titulo    = $pagina_titulo    ?? APP_NAME . ' — ' . APP_TAGLINE;
 $pagina_descricao = $pagina_descricao ?? 'Sistema de inteligência jurídica que redige peças processuais, audita contratos e organiza a rotina de escritórios de advocacia brasileiros.';
+$estilos_extra    = $estilos_extra    ?? [];
+$scripts_extra    = $scripts_extra    ?? [];
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR" class="scroll-suave">
@@ -47,5 +53,11 @@ $pagina_descricao = $pagina_descricao ?? 'Sistema de inteligência jurídica que
   };
 </script>
 <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')) ?>">
+<?php foreach ($estilos_extra as $estilo): ?>
+<link rel="stylesheet" href="<?= e($estilo) ?>">
+<?php endforeach; ?>
+<?php foreach ($scripts_extra as $script): ?>
+<script src="<?= e($script) ?>" defer></script>
+<?php endforeach; ?>
 </head>
 <body class="bg-navy font-sans text-silk antialiased selection:bg-gold selection:text-navy">

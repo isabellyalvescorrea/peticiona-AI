@@ -6,12 +6,16 @@ $pagina_titulo    = 'Visão Geral — ' . APP_NAME;
 $painel_titulo    = 'Visão Geral';
 $painel_subtitulo = 'Panorama do escritório — agosto de ' . date('Y');
 
-// Estado de primeiro acesso: nada foi produzido ainda.
+$scripts_extra = [asset('assets/js/dados.js')];
+
+// Valores de primeiro acesso renderizados no servidor. Assim que dados.js
+// carrega, ele os substitui pelo que houver no localStorage — a chave em
+// 'metrica' é o que liga cada cartão ao seu valor.
 $indicadores = [
-    ['rotulo' => 'Peças Geradas no Mês',  'valor' => '0', 'variacao' => 'Nenhuma peça gerada ainda',    'barra' => 0],
-    ['rotulo' => 'Contratos Analisados',  'valor' => '0', 'variacao' => 'Aguardando primeira análise',  'barra' => 0],
-    ['rotulo' => 'Horas Economizadas',    'valor' => '0', 'variacao' => 'Inicie o uso para contabilizar', 'barra' => 0],
-    ['rotulo' => 'Clientes Ativos',       'valor' => '0', 'variacao' => 'Nenhum cliente cadastrado',    'barra' => 0],
+    ['metrica' => 'pecas',     'rotulo' => 'Peças Geradas no Mês', 'valor' => '0', 'variacao' => 'Nenhuma peça gerada ainda'],
+    ['metrica' => 'contratos', 'rotulo' => 'Contratos Analisados', 'valor' => '0', 'variacao' => 'Aguardando primeira análise'],
+    ['metrica' => 'horas',     'rotulo' => 'Horas Economizadas',   'valor' => '0', 'variacao' => 'Inicie o uso para contabilizar'],
+    ['metrica' => 'clientes',  'rotulo' => 'Clientes Ativos',      'valor' => '0', 'variacao' => 'Nenhum cliente cadastrado'],
 ];
 
 $atalhos = [
@@ -55,11 +59,13 @@ require __DIR__ . '/includes/header-painel.php';
     <?php foreach ($indicadores as $i => $ind): ?>
       <article class="cartao cartao-fio revelar overflow-hidden rounded-lg p-6" data-atraso="<?= $i * 70 ?>">
         <p class="text-[11px] uppercase tracking-[0.18em] text-silver"><?= e($ind['rotulo']) ?></p>
-        <p class="mt-4 text-[40px] font-light leading-none text-silk"><?= e($ind['valor']) ?></p>
+        <p class="mt-4 text-[40px] font-light leading-none text-silk"
+           data-metrica="<?= e($ind['metrica']) ?>"><?= e($ind['valor']) ?></p>
         <div class="filete-progresso mt-5 rounded-full">
-          <span style="width:<?= (int) $ind['barra'] ?>%"></span>
+          <span data-metrica-barra="<?= e($ind['metrica']) ?>" style="width:0%"></span>
         </div>
-        <p class="mt-3 text-[12px] text-gold/80"><?= e($ind['variacao']) ?></p>
+        <p class="mt-3 text-[12px] text-gold/80"
+           data-metrica-nota="<?= e($ind['metrica']) ?>"><?= e($ind['variacao']) ?></p>
       </article>
     <?php endforeach; ?>
   </div>
@@ -101,36 +107,21 @@ require __DIR__ . '/includes/header-painel.php';
       <span class="rotulo-secao text-[9px] text-gold/70">Últimas 48 h</span>
     </div>
 
-    <?php if ($atividades === []): ?>
-      <div class="flex min-h-[260px] flex-col items-center justify-center px-8 py-14 text-center">
-        <p class="max-w-[380px] text-[14px] leading-[1.75] text-silver">
-          Nenhuma atividade recente registrada.
-          <span class="block text-silver/70">Suas ações aparecerão aqui em tempo real.</span>
-        </p>
-        <span class="mt-7 block h-px w-14 bg-gold/30"></span>
-      </div>
-    <?php else: ?>
-      <ul>
-        <?php foreach ($atividades as $i => $ato): ?>
-          <li class="<?= $i > 0 ? 'border-t border-gold/[0.07]' : '' ?> px-6 py-5 transition-colors duration-500 hover:bg-gold/[0.025] sm:px-7">
-            <div class="flex flex-col gap-1.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
-              <div class="min-w-0">
-                <p class="text-[14.5px] leading-snug text-silk"><?= e($ato['titulo']) ?></p>
-                <p class="mt-1.5 text-[12.5px] text-silver"><?= e($ato['cliente']) ?></p>
-              </div>
-              <div class="shrink-0 sm:text-right">
-                <p class="text-[11.5px] text-silver/70"><?= e($ato['hora']) ?></p>
-                <p class="mt-1.5 text-[11.5px] text-gold/80"><?= e($ato['estado']) ?></p>
-              </div>
-            </div>
-          </li>
-        <?php endforeach; ?>
-      </ul>
-    <?php endif; ?>
+    <!-- Estado vazio e lista convivem: dados.js alterna entre os dois conforme
+         o acervo, sem recarregar a página. -->
+    <div data-vazio="atividades" class="flex min-h-[260px] flex-col items-center justify-center px-8 py-14 text-center">
+      <p class="max-w-[380px] text-[14px] leading-[1.75] text-silver">
+        Nenhuma atividade recente registrada.
+        <span class="block text-silver/70">Suas ações aparecerão aqui em tempo real.</span>
+      </p>
+      <span class="mt-7 block h-px w-14 bg-gold/30"></span>
+    </div>
+
+    <ul data-lista="atividades" class="hidden"></ul>
 
     <div class="border-t border-gold/[0.1] px-6 py-4 sm:px-7">
       <a href="gerador-de-pecas.php" class="link-seta text-[12.5px] uppercase tracking-[0.16em] text-gold">
-        Gerar a primeira peça <span class="seta ml-1">&rarr;</span>
+        <span data-rodape="atividades">Gerar a primeira peça</span> <span class="seta ml-1">&rarr;</span>
       </a>
     </div>
   </article>
@@ -143,20 +134,20 @@ require __DIR__ . '/includes/header-painel.php';
 
     <div class="space-y-5 px-6 py-6 sm:px-7">
       <?php foreach ($distribuicao as $linha): ?>
-        <div>
+        <div data-area="<?= e($linha['area']) ?>">
           <div class="flex items-baseline justify-between gap-4">
             <p class="text-[13.5px] text-silk"><?= e($linha['area']) ?></p>
-            <p class="ordinal text-[13px] text-gold"><?= (int) $linha['percentual'] ?>%</p>
+            <p class="ordinal text-[13px] text-gold" data-area-percentual>0%</p>
           </div>
           <div class="filete-progresso mt-2.5 rounded-full">
-            <span style="width:<?= (int) $linha['percentual'] ?>%"></span>
+            <span data-area-barra style="width:0%"></span>
           </div>
         </div>
       <?php endforeach; ?>
     </div>
 
     <div class="border-t border-gold/[0.1] px-6 py-5 sm:px-7">
-      <p class="text-[12px] leading-relaxed text-silver/70">
+      <p class="text-[12px] leading-relaxed text-silver/70" data-distribuicao-nota>
         Aguardando primeiras produções.
       </p>
     </div>
