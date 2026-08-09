@@ -29,18 +29,21 @@ error_reporting(E_ALL);
 /**
  * Sobrescrevível pela variável de ambiente GEMINI_MODEL.
  *
- * gemini-2.5-flash foi aposentado para novos usuários e devolve 404. Quando
- * este também for, GET ?modelos=1 lista o que a chave enxerga no momento.
+ * A escolha é por disponibilidade, não por ser o mais novo. O gemini-3.6-flash
+ * foi testado primeiro e mostrou-se inviável dentro de uma função de 60 s: por
+ * ser o modelo mais recente é também o mais concorrido, e respondeu ora 503
+ * "experiencing high demand", ora nada — 55 s sem emitir um byte, porque
+ * raciocina longamente antes de escrever.
+ *
+ * O 2.0-flash não faz raciocínio prévio, responde em poucos segundos e tem
+ * cota gratuita bem mais larga. Redigir peça é geração estruturada, e a perda
+ * de sofisticação não compensa um sistema que falha na maior parte das vezes.
+ * Para preferir o 3.6, basta definir GEMINI_MODEL.
  */
-const MODELO_PADRAO = 'gemini-3.6-flash';
+const MODELO_PADRAO = 'gemini-2.0-flash';
 
-/**
- * Usado quando o principal responde 503 "high demand". O modelo mais recente é
- * também o mais concorrido, e o congestionamento é frequente o bastante para
- * não valer devolver erro sem antes tentar um caminho alternativo. O 2.0-flash
- * não faz raciocínio prévio, então responde rápido dentro do tempo que sobra.
- */
-const MODELO_RESERVA = 'gemini-2.0-flash';
+/** Alternativa caso o principal responda 503. */
+const MODELO_RESERVA = 'gemini-3.5-flash';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -238,15 +241,22 @@ $temperatura = max(0.0, min(1.5, $temperatura));
  */
 $tetoSaida = $tarefa === 'resumo' ? 2048 : 8192;
 
+/**
+ * O principal recebe 30 s dos 55 disponíveis. O corte é deliberado: sobra
+ * orçamento para uma segunda tentativa no modelo de reserva, e um modelo sem
+ * raciocínio prévio que não respondeu em 30 s dificilmente responderá em 50.
+ */
 $inicio = microtime(true);
-[$status, $dados, $erroCurl] = gerar(url_do_modelo($modelo), $chave, $prompt, $temperatura, $tetoSaida, 50);
+[$status, $dados, $erroCurl] = gerar(url_do_modelo($modelo), $chave, $prompt, $temperatura, $tetoSaida, 30);
 
 /**
- * Congestionamento do modelo principal não precisa virar erro para quem está
- * usando: havendo tempo no orçamento da função, o mesmo prompt vai ao modelo
- * de reserva. Só o 503 justifica isso — 429 e 401 se repetiriam igual.
+ * Congestionamento não precisa virar erro para quem está usando. Tanto o 503
+ * explícito quanto o silêncio até o timeout indicam modelo indisponível, e
+ * ambos merecem o caminho alternativo — 429 e 401 se repetiriam igual.
  */
-if ($status === 503 && $modelo !== MODELO_RESERVA) {
+$indisponivel = $status === 503 || $dados === null;
+
+if ($indisponivel && $modelo !== MODELO_RESERVA) {
     $restante = 55 - (int) (microtime(true) - $inicio);
     if ($restante >= 12) {
         $modelo = MODELO_RESERVA;
