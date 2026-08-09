@@ -206,11 +206,31 @@ if ($dados === null) {
 }
 
 if ($status !== 200) {
+    // A mensagem do Google é devolvida sem a chave, que nunca entra no corpo.
+    $doGoogle = (string) ($dados['error']['message'] ?? '');
+
+    $mensagem = match (true) {
+        $status === 429 => (function () use ($doGoogle) {
+            // O Google informa quanto falta; repassar isso vale mais do que
+            // "tente novamente mais tarde".
+            preg_match('/retry in ([\d.]+)s/i', $doGoogle, $m);
+            $espera = isset($m[1]) ? ' Tente de novo em cerca de ' . ceil((float) $m[1]) . ' segundos.' : '';
+            return 'A cota da API do Gemini foi atingida.' . $espera .
+                   ' No plano gratuito o limite é baixo; para uso contínuo, ative o faturamento no Google AI Studio.';
+        })(),
+        $status === 401 || $status === 403 =>
+            'A GEMINI_API_KEY foi recusada pelo Google. Verifique se a chave está correta e ativa.',
+        $status === 404 =>
+            'O modelo configurado não está disponível para esta chave. Ajuste GEMINI_MODEL nas variáveis de ambiente.',
+        default => 'O Gemini respondeu com erro.',
+    };
+
     responder([
-        'erro'    => 'O Gemini respondeu com erro.',
-        'status'  => $status,
-        // A mensagem do Google é devolvida sem a chave, que nunca entra no corpo.
-        'detalhe' => $dados['error']['message'] ?? null,
+        'erro'     => $mensagem,
+        'status'   => $status,
+        'detalhe'  => $doGoogle !== '' ? $doGoogle : null,
+        // 429 é transitório: passado o intervalo, a mesma peça costuma sair.
+        'reptivel' => false,
     ], 502);
 }
 
