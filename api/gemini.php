@@ -42,8 +42,15 @@ error_reporting(E_ALL);
  */
 const MODELO_PADRAO = 'gemini-2.0-flash';
 
-/** Alternativa caso o principal responda 503. */
-const MODELO_RESERVA = 'gemini-3.5-flash';
+/**
+ * Alternativas, em ordem de uso. Cada modelo tem balde de cota próprio, então
+ * a redundância protege tanto de congestionamento quanto de limite atingido.
+ *
+ * gemini-1.5-flash não entra: foi aposentado e não consta mais na listagem da
+ * conta — pedi-lo devolveria 404.
+ */
+const MODELO_RESERVA = 'gemini-2.5-flash-lite';
+const MODELO_ULTIMO  = 'gemini-3.5-flash';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -242,30 +249,69 @@ $temperatura = max(0.0, min(1.5, $temperatura));
 $tetoSaida = $tarefa === 'resumo' ? 2048 : 8192;
 
 /**
- * O principal recebe 30 s dos 55 disponíveis. O corte é deliberado: sobra
- * orçamento para uma segunda tentativa no modelo de reserva, e um modelo sem
- * raciocínio prévio que não respondeu em 30 s dificilmente responderá em 50.
+ * Cadeia de modelos.
+ *
+ * Cada modelo tem balde de cota próprio no plano gratuito, então um 429 no
+ * primeiro não impede o segundo de atender. A ordem vai do mais disponível ao
+ * mais sofisticado: só se chega ao fim da fila quando os anteriores recusaram.
+ *
+ * Um GEMINI_MODEL definido no ambiente encabeça a fila e não é descartado.
  */
-$inicio = microtime(true);
-[$status, $dados, $erroCurl] = gerar(url_do_modelo($modelo), $chave, $prompt, $temperatura, $tetoSaida, 30);
+$cadeia = array_values(array_unique(array_filter([
+    $modelo,
+    MODELO_PADRAO,
+    MODELO_RESERVA,
+    MODELO_ULTIMO,
+])));
 
 /**
- * Congestionamento não precisa virar erro para quem está usando. Tanto o 503
- * explícito quanto o silêncio até o timeout indicam modelo indisponível, e
- * ambos merecem o caminho alternativo — 429 e 401 se repetiriam igual.
+ * Só vale trocar de modelo quando a recusa é do modelo, não do pedido:
+ *   429 — cota daquele modelo esgotada; outro balde pode estar livre
+ *   503 — congestionamento momentâneo
+ *   500/502/504 — instabilidade do lado do Google
+ *   resposta nula — silêncio até o timeout, que é indisponibilidade na prática
+ * Um 400, 401, 403 ou 404 se repetiria idêntico e encerra a fila na hora.
  */
-$indisponivel = $status === 503 || $dados === null;
+function vale_tentar_outro(int $status, ?array $dados): bool
+{
+    return $dados === null || in_array($status, [429, 500, 502, 503, 504], true);
+}
 
-if ($indisponivel && $modelo !== MODELO_RESERVA) {
-    $restante = 55 - (int) (microtime(true) - $inicio);
-    if ($restante >= 12) {
-        $modelo = MODELO_RESERVA;
-        [$status, $dados, $erroCurl] = gerar(url_do_modelo($modelo), $chave, $prompt, $temperatura, $tetoSaida, $restante);
+$inicio    = microtime(true);
+$tentativas = [];
+$status = 0; $dados = null; $erroCurl = '';
+
+foreach ($cadeia as $candidato) {
+    $decorrido = (int) (microtime(true) - $inicio);
+    $restante  = 55 - $decorrido;
+
+    // Sem tempo para uma tentativa útil, a fila para aqui.
+    if ($restante < 12) {
+        break;
+    }
+
+    // Teto de 30 s por tentativa: preserva orçamento para o próximo da fila, e
+    // um modelo que não respondeu em 30 s dificilmente responderia em 50.
+    [$status, $dados, $erroCurl] = gerar(
+        url_do_modelo($candidato), $chave, $prompt, $temperatura, $tetoSaida,
+        min(30, $restante)
+    );
+
+    $modelo = $candidato;
+    $tentativas[] = ['modelo' => $candidato, 'status' => $dados === null ? 0 : $status];
+
+    if (!vale_tentar_outro($status, $dados)) {
+        break;
     }
 }
 
 if ($dados === null) {
-    responder(['erro' => 'Falha de rede ao contatar o Gemini.', 'detalhe' => $erroCurl], 502);
+    responder([
+        'erro'       => 'Nenhum modelo do Gemini respondeu a tempo.',
+        'detalhe'    => $erroCurl,
+        'tentativas' => $tentativas,
+        'reptivel'   => true,
+    ], 502);
 }
 
 if ($status !== 200) {
@@ -292,11 +338,14 @@ if ($status !== 200) {
     };
 
     responder([
-        'erro'     => $mensagem,
-        'status'   => $status,
-        'detalhe'  => $doGoogle !== '' ? $doGoogle : null,
-        // Congestionamento do modelo passa sozinho; vale o cliente insistir.
-        'reptivel' => $status === 503,
+        'erro'       => $mensagem,
+        'status'     => $status,
+        'detalhe'    => $doGoogle !== '' ? $doGoogle : null,
+        // Mostra o caminho percorrido: ajuda a distinguir "um modelo ocupado"
+        // de "a conta inteira sem cota".
+        'tentativas' => $tentativas,
+        // Congestionamento passa sozinho; vale o cliente insistir.
+        'reptivel'   => in_array($status, [503, 500, 502, 504], true),
     ], 502);
 }
 
@@ -326,5 +375,8 @@ responder([
     'tarefa'     => $tarefa,
     'texto'      => $texto,
     'uso'        => $dados['usageMetadata'] ?? null,
+    // Quando houve troca de modelo, o histórico explica por que a resposta
+    // demorou mais e qual balde de cota acabou sendo usado.
+    'tentativas' => count($tentativas) > 1 ? $tentativas : null,
     'recebidoEm' => gmdate('c'),
 ]);
