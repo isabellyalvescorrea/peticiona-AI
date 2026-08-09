@@ -139,62 +139,111 @@ $url = sprintf(
     rawurlencode($modelo)
 );
 
-$corpo = [
-    'contents' => [[
-        'role'  => 'user',
-        'parts' => [['text' => $prompt]],
-    ]],
-    'generationConfig' => [
-        'temperature'     => 0.35,   // técnica jurídica pede consistência, não criatividade
-        'topP'            => 0.9,
-        'maxOutputTokens' => 8192,
-    ],
-];
+/** Uma tentativa de geração. Devolve [status, dadosDecodificados, erroCurl]. */
+function gerar(string $url, string $chave, string $prompt, float $temperatura): array
+{
+    $corpo = [
+        'contents' => [[
+            'role'  => 'user',
+            'parts' => [['text' => $prompt]],
+        ]],
+        'generationConfig' => [
+            'temperature'     => $temperatura,
+            'topP'            => 0.9,
+            'maxOutputTokens' => 8192,
+        ],
+    ];
 
-$ch = curl_init($url);
-curl_setopt_array($ch, [
-    CURLOPT_POST           => true,
-    CURLOPT_RETURNTRANSFER => true,
-    // Abaixo do maxDuration da função (60 s), para que um Gemini lento vire
-    // um JSON de erro legível em vez de um corte seco da plataforma.
-    CURLOPT_TIMEOUT        => 52,
-    CURLOPT_HTTPHEADER     => [
-        'Content-Type: application/json',
-        'x-goog-api-key: ' . $chave,
-    ],
-    CURLOPT_POSTFIELDS => json_encode($corpo, JSON_UNESCAPED_UNICODE),
-]);
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_POST           => true,
+        CURLOPT_RETURNTRANSFER => true,
+        // Abaixo do maxDuration da função (60 s), para que um Gemini lento vire
+        // um JSON de erro legível em vez de um corte seco da plataforma.
+        CURLOPT_TIMEOUT        => 24,
+        CURLOPT_HTTPHEADER     => [
+            'Content-Type: application/json',
+            'x-goog-api-key: ' . $chave,
+        ],
+        CURLOPT_POSTFIELDS => json_encode($corpo, JSON_UNESCAPED_UNICODE),
+    ]);
 
-$resposta = curl_exec($ch);
-$status   = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$erroCurl = curl_error($ch);
-// curl_close() não é chamado: desde o PHP 8.0 não tem efeito, e no 8.5 emite
-// deprecação — que vazaria para o corpo e quebraria o JSON.
+    $bruto  = curl_exec($ch);
+    $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $erro   = curl_error($ch);
+    // curl_close() não é chamado: desde o PHP 8.0 não tem efeito, e no 8.5 emite
+    // deprecação — que vazaria para o corpo e quebraria o JSON.
 
-if ($resposta === false) {
-    responder(['erro' => 'Falha de rede ao contatar o Gemini.', 'detalhe' => $erroCurl], 502);
+    return [$status, $bruto === false ? null : json_decode((string) $bruto, true), $erro];
 }
 
-$dados = json_decode((string) $resposta, true);
-
-if ($status !== 200 || !is_array($dados)) {
-    responder([
-        'erro'      => 'O Gemini respondeu com erro.',
-        'status'    => $status,
-        // A mensagem do Google é devolvida sem a chave, que nunca entra no corpo.
-        'detalhe'   => is_array($dados) ? ($dados['error']['message'] ?? null) : null,
-    ], 502);
+/** Concatena as partes textuais de um candidato. */
+function extrair_texto(?array $dados): string
+{
+    $texto = '';
+    foreach ($dados['candidates'][0]['content']['parts'] ?? [] as $parte) {
+        $texto .= $parte['text'] ?? '';
+    }
+    return trim($texto);
 }
 
+/**
+ * Peça processual é texto altamente padronizado, e o Gemini às vezes barra a
+ * própria saída como RECITATION por reconhecê-la como reprodução de material
+ * conhecido. O bloqueio é intermitente: variar a temperatura afasta a geração
+ * do trecho memorizado e costuma resolver na segunda tentativa.
+ *
+ * Duas tentativas de 24 s cabem no orçamento de 60 s da função.
+ */
+$temperaturas = [0.35, 0.75];
+$dados = null;
+$status = 0;
+$erroCurl = '';
 $texto = '';
-foreach ($dados['candidates'][0]['content']['parts'] ?? [] as $parte) {
-    $texto .= $parte['text'] ?? '';
+$motivo = null;
+
+foreach ($temperaturas as $i => $temperatura) {
+    [$status, $dados, $erroCurl] = gerar($url, $chave, $prompt, $temperatura);
+
+    if ($dados === null) {
+        responder(['erro' => 'Falha de rede ao contatar o Gemini.', 'detalhe' => $erroCurl], 502);
+    }
+
+    if ($status !== 200) {
+        responder([
+            'erro'    => 'O Gemini respondeu com erro.',
+            'status'  => $status,
+            // A mensagem do Google é devolvida sem a chave, que nunca entra no corpo.
+            'detalhe' => $dados['error']['message'] ?? null,
+        ], 502);
+    }
+
+    $texto  = extrair_texto($dados);
+    $motivo = $dados['candidates'][0]['finishReason'] ?? null;
+
+    if ($texto !== '') {
+        break;
+    }
+
+    // Só vale insistir quando o bloqueio é do tipo que a variação resolve.
+    if ($motivo !== 'RECITATION' || $i === count($temperaturas) - 1) {
+        break;
+    }
 }
 
-if (trim($texto) === '') {
+if ($texto === '') {
+    $explicacoes = [
+        'RECITATION' => 'O modelo interrompeu a geração por identificar o texto como reprodução de ' .
+                        'material conhecido — comum em peças de linguagem muito padronizada. ' .
+                        'Detalhe mais os fatos do caso e gere novamente.',
+        'SAFETY'     => 'O conteúdo foi barrado pelos filtros de segurança do modelo. ' .
+                        'Revise os termos empregados na descrição dos fatos.',
+        'MAX_TOKENS' => 'A peça excedeu o limite de tamanho. Reduza o volume de fatos e pedidos.',
+    ];
+
     responder([
-        'erro'   => 'O Gemini não retornou texto.',
-        'motivo' => $dados['candidates'][0]['finishReason'] ?? null,
+        'erro'   => $explicacoes[$motivo] ?? 'O Gemini não retornou texto.',
+        'motivo' => $motivo,
     ], 502);
 }
 
