@@ -151,6 +151,14 @@ function gerar(string $url, string $chave, string $prompt, float $temperatura, i
             'temperature'     => $temperatura,
             'topP'            => 0.9,
             'maxOutputTokens' => $tetoSaida,
+            /**
+             * O gemini-3.6-flash raciocina bastante antes de escrever: num
+             * prompt de 6 tokens gastou 96 em raciocínio, e com o prompt de
+             * uma peça inteira chegou a não emitir byte algum em 55 s. Redigir
+             * peça é geração estruturada, não dedução difícil, então o nível
+             * baixo devolve dentro do tempo da função sem perder técnica.
+             */
+            'thinkingConfig'  => ['thinkingLevel' => 'low'],
         ],
     ];
 
@@ -202,12 +210,11 @@ $temperatura = max(0.0, min(1.5, $temperatura));
 /**
  * Teto de saída por tarefa.
  *
- * 4096 tokens equivalem a cerca de 14 mil caracteres — bem acima das peças
- * observadas, que ficam entre 8 e 10 mil. O teto anterior, de 8192, não
- * melhorava o resultado e alongava a geração: com o prompt completo ela passou
- * de 52 s e estourou o tempo da requisição. O resumo é curto por definição.
+ * O teto conta raciocínio mais resposta. 8192 dá folga para a peça inteira sem
+ * truncar; o que resolvia a demora não era apertar este número, e sim conter o
+ * raciocínio pelo thinkingConfig. O resumo é curto por definição.
  */
-$tetoSaida = $tarefa === 'resumo' ? 1536 : 4096;
+$tetoSaida = $tarefa === 'resumo' ? 2048 : 8192;
 
 [$status, $dados, $erroCurl] = gerar($url, $chave, $prompt, $temperatura, $tetoSaida);
 
