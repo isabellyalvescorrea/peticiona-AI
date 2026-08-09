@@ -295,6 +295,104 @@ body {
   transform: none;
 }
 
+/* --- Botão em processamento ---------------------------------------------- */
+
+/* Anel de progresso desenhado em CSS: uma borda com um lado aceso girando.
+   Nenhuma biblioteca de ícones envolvida. */
+@keyframes girar-anel {
+  to { transform: rotate(360deg); }
+}
+
+.anel-carga {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 9px;
+  vertical-align: -2px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  opacity: 0.85;
+  animation: girar-anel 0.7s linear infinite;
+}
+
+button[disabled],
+button[aria-busy="true"] {
+  cursor: not-allowed;
+}
+
+button[aria-busy="true"] {
+  /* Mantém o botão legível enquanto trabalha, sem o apagamento do disabled. */
+  opacity: 0.9;
+}
+
+/* --- Aviso flutuante de conclusão ---------------------------------------- */
+
+.pilha-avisos {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  pointer-events: none;
+}
+
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 22px;
+  border-radius: 8px;
+  border: 1px solid rgba(226, 212, 168, 0.42);
+  background: linear-gradient(160deg, rgba(24, 37, 72, 0.98), rgba(14, 23, 50, 0.98));
+  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.95), 0 0 34px -12px rgba(226, 212, 168, 0.32);
+  color: #F8FAFC;
+  font-size: 14px;
+  line-height: 1.5;
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.aviso.visivel {
+  opacity: 1;
+  transform: none;
+}
+
+/* Filete dourado à esquerda, no lugar de um ícone de status. */
+.aviso::before {
+  content: '';
+  width: 2px;
+  align-self: stretch;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #F4EACB, #C6B37F);
+}
+
+/* --- Barra de ações do documento ----------------------------------------- */
+
+/* Gruda no rodapé da coluna enquanto se lê a peça, para que baixar e resumir
+   estejam sempre ao alcance sem rolar de volta. */
+.barra-acoes {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  background: linear-gradient(180deg, rgba(11, 19, 43, 0) 0%, rgba(11, 19, 43, 0.92) 22%, rgba(11, 19, 43, 0.98) 100%);
+  backdrop-filter: blur(6px);
+}
+
+/* --- Modal do resumo ------------------------------------------------------ */
+
+.resumo-corpo {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 /* --- Estados de processamento ------------------------------------------- */
 
 /* Reticências de "processando" em três pontos tipográficos. */

@@ -18,6 +18,7 @@
   var Dados = global.PeticionaDados;
 
   function $(s, ctx) { return (ctx || document).querySelector(s); }
+  function $$(s, ctx) { return Array.prototype.slice.call((ctx || document).querySelectorAll(s)); }
   function valor(sel) { var el = $(sel); return el ? el.value.trim() : ''; }
 
   /* ---------------------------------------------------------------------
@@ -128,6 +129,49 @@
   function mostrar(el) { if (el) el.classList.remove('hidden'); }
   function ocultar(el) { if (el) el.classList.add('hidden'); }
 
+  /**
+   * Botão em trabalho: rótulo próprio, anel girando e clique bloqueado.
+   * O rótulo original fica guardado no próprio elemento para que a restauração
+   * não dependa de quem chamou.
+   */
+  function ocupar(botao, rotulo) {
+    if (!botao) return;
+    if (!botao.hasAttribute('data-rotulo-original')) {
+      botao.setAttribute('data-rotulo-original', botao.innerHTML);
+    }
+    botao.innerHTML = '<span class="anel-carga" aria-hidden="true"></span>' + rotulo;
+    botao.disabled = true;
+    botao.setAttribute('aria-busy', 'true');
+  }
+
+  function liberar(botao) {
+    if (!botao) return;
+    var original = botao.getAttribute('data-rotulo-original');
+    if (original !== null) botao.innerHTML = original;
+    botao.disabled = false;
+    botao.removeAttribute('aria-busy');
+  }
+
+  /** Aviso flutuante que se apaga sozinho. */
+  function avisar(mensagem, duracao) {
+    var pilha = document.getElementById('pilha-avisos');
+    if (!pilha) return;
+
+    var caixa = document.createElement('div');
+    caixa.className = 'aviso';
+    caixa.textContent = mensagem;
+    pilha.appendChild(caixa);
+
+    // Um quadro de intervalo para a transição partir do estado inicial.
+    requestAnimationFrame(function () { caixa.classList.add('visivel'); });
+
+    window.setTimeout(function () {
+      caixa.classList.remove('visivel');
+      // Só remove do DOM depois da transição de saída.
+      window.setTimeout(function () { caixa.remove(); }, 450);
+    }, duracao || 3000);
+  }
+
   /** Registra na tela qual modelo produziu o texto e o custo em tokens. */
   function informarModelo(container, corpo) {
     if (!container) return;
@@ -200,7 +244,7 @@
 
       ocultar(vazio); ocultar(folha); ocultar(acoes);
       mostrar(carga);
-      botao.disabled = true;
+      ocupar(botao, 'Gerando Peça…');
 
       chamarGemini(payload, function () { avisarNovaTentativa(carga); })
         .then(function (resposta) {
@@ -229,6 +273,7 @@
           console.log(peca);
           console.groupEnd();
 
+          avisar('Documento gerado com sucesso! Pronto para leitura e download.');
           folha.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         })
         .catch(function (erro) {
@@ -237,7 +282,7 @@
           relatarErro(vazio, 'Não foi possível gerar a peça: ' + erro.message);
           console.error('[Peticiona] Falha na geração:', erro);
         })
-        .then(function () { botao.disabled = false; });
+        .then(function () { liberar(botao); });
     });
   }
 
@@ -276,7 +321,7 @@
 
       ocultar(vazio); ocultar(saida);
       mostrar(carga);
-      botao.disabled = true;
+      ocupar(botao, 'Analisando com IA…');
 
       chamarGemini(payload, function () { avisarNovaTentativa(carga); })
         .then(function (resposta) {
@@ -299,6 +344,8 @@
           console.groupCollapsed('[Peticiona] Gravado em localStorage.peticiona_auditorias');
           console.log(auditoria);
           console.groupEnd();
+
+          avisar('Documento gerado com sucesso! Pronto para leitura e download.');
         })
         .catch(function (erro) {
           ocultar(carga);
@@ -306,7 +353,141 @@
           relatarErro(vazio, 'Não foi possível auditar o contrato: ' + erro.message);
           console.error('[Peticiona] Falha na auditoria:', erro);
         })
-        .then(function () { botao.disabled = false; });
+        .then(function () { liberar(botao); });
+    });
+  }
+
+  /* ---------------------------------------------------------------------
+     Resumo para o cliente
+
+     Segunda chamada ao Gemini, sobre o documento já produzido: traduz a peça
+     ou o parecer para uma linguagem que o cliente entenda.
+     --------------------------------------------------------------------- */
+
+  var PROMPT_RESUMO = 'Você é um assistente jurídico humanizado. Leia este documento/parecer ' +
+    'técnico e crie um resumo curto, claro, sem "juridiquês" e em linguagem acessível para ser ' +
+    'enviado diretamente para o cliente final via WhatsApp. Use tópicos de forma profissional.';
+
+  function montarPromptResumo(documento) {
+    return PROMPT_RESUMO + '\n\nDOCUMENTO:\n' + documento;
+  }
+
+  /** Recupera do localStorage o texto original do documento em tela. */
+  function documentoAtual(origemSel) {
+    var origem = $(origemSel);
+    if (!origem || !Dados) return null;
+
+    var idPeca = origem.getAttribute('data-peca-id');
+    if (idPeca) {
+      var peca = Dados.listarPecas().find(function (p) { return p.id === idPeca; });
+      if (peca) return { texto: peca.conteudoGerado, cliente: peca.cliente };
+    }
+
+    var idAudit = origem.getAttribute('data-auditoria-id');
+    if (idAudit) {
+      var a = Dados.listarAuditorias().find(function (x) { return x.id === idAudit; });
+      if (a) return { texto: a.relatorio, cliente: a.cliente };
+    }
+    return null;
+  }
+
+  function ligarResumo() {
+    var modal = $('#modal-resumo');
+    if (!modal) return;
+
+    var carga     = $('#resumo-carregando');
+    var conteudo  = $('#resumo-conteudo');
+    var falha     = $('#resumo-erro');
+    var alvoTexto = modal.querySelector('[data-resumo-texto]');
+    var alvoErro  = modal.querySelector('[data-resumo-erro]');
+    var copiar    = $('#copiar-resumo');
+
+    function abrir() {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function fechar() {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      document.body.style.overflow = '';
+    }
+
+    $$('[data-fechar-resumo]', modal).forEach(function (el) {
+      el.addEventListener('click', fechar);
+    });
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape' && !modal.classList.contains('hidden')) fechar();
+    });
+
+    $$('[data-gerar-resumo]').forEach(function (botao) {
+      botao.addEventListener('click', function () {
+        var doc = documentoAtual(botao.getAttribute('data-origem') || '#peca-folha');
+        if (!doc) {
+          avisar('Gere o documento antes de pedir o resumo.');
+          return;
+        }
+
+        abrir();
+        mostrar(carga); ocultar(conteudo); ocultar(falha);
+        if (copiar) copiar.disabled = true;
+        ocupar(botao, 'Resumindo…');
+
+        requisicao({
+          tarefa: 'resumo',
+          prompt: montarPromptResumo(doc.texto),
+          temperatura: 0.5
+        })
+          .then(function (resposta) {
+            ocultar(carga);
+            if (alvoTexto) alvoTexto.textContent = resposta.texto;
+            mostrar(conteudo);
+            if (copiar) copiar.disabled = false;
+            avisar('Resumo pronto para envio ao cliente.');
+          })
+          .catch(function (erro) {
+            ocultar(carga);
+            if (alvoErro) alvoErro.textContent = 'Não foi possível gerar o resumo: ' + erro.message;
+            mostrar(falha);
+            console.error('[Peticiona] Falha no resumo:', erro);
+          })
+          .then(function () { liberar(botao); });
+      });
+    });
+
+    if (copiar) {
+      copiar.addEventListener('click', function () {
+        var texto = alvoTexto ? alvoTexto.textContent : '';
+        if (!texto) return;
+
+        copiarTexto(texto)
+          .then(function () { avisar('Resumo copiado para a área de transferência.'); })
+          .catch(function () { avisar('Não foi possível copiar. Selecione o texto manualmente.'); });
+      });
+    }
+  }
+
+  /**
+   * A Clipboard API exige contexto seguro e permissão; quando indisponível,
+   * o caminho antigo com textarea + execCommand ainda funciona.
+   */
+  function copiarTexto(texto) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(texto);
+    }
+    return new Promise(function (resolver, rejeitar) {
+      var area = document.createElement('textarea');
+      area.value = texto;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.left = '-9999px';
+      document.body.appendChild(area);
+      area.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      area.remove();
+      ok ? resolver() : rejeitar(new Error('execCommand falhou'));
     });
   }
 
@@ -346,6 +527,7 @@
     if (!Dados) { console.error('[Peticiona] dados.js precisa carregar antes de gemini.js'); return; }
     ligarGerador();
     ligarAnalisador();
+    ligarResumo();
   }
 
   if (document.readyState === 'loading') {
@@ -359,6 +541,8 @@
     montarPromptPeca: montarPromptPeca,
     montarPromptAuditoria: montarPromptAuditoria,
     chamarGemini: chamarGemini,
-    contarRiscos: contarRiscos
+    contarRiscos: contarRiscos,
+    montarPromptResumo: montarPromptResumo,
+    avisar: avisar
   };
 })(window);

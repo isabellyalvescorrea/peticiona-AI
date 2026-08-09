@@ -93,10 +93,10 @@ require __DIR__ . '/includes/header-painel.php';
         <div id="analise-corpo" class="folha-juridica"></div>
       </div>
 
-      <div class="cartao rounded-lg p-6 sm:p-7">
+      <div class="barra-acoes cartao rounded-lg p-6 sm:p-7">
         <div class="flex flex-col gap-5">
           <div>
-            <h3 class="text-[16px] font-medium text-silk">Exportar parecer</h3>
+            <h3 class="text-[16px] font-medium text-silk">Exportar e comunicar</h3>
             <p class="mt-1.5 text-[12.5px] text-silver">
               Documento com formatação forense, pronto para anexar ao dossiê do cliente.
             </p>
@@ -105,6 +105,10 @@ require __DIR__ . '/includes/header-painel.php';
             <button type="button" data-exportar-pdf data-origem="#analise-resultado"
                     class="btn-ouro grow whitespace-nowrap rounded-md px-5 py-3 text-[13.5px] font-semibold sm:grow-0">
               Baixar parecer em PDF
+            </button>
+            <button type="button" data-gerar-resumo data-origem="#analise-resultado"
+                    class="btn-contorno grow whitespace-nowrap rounded-md px-5 py-3 text-[13.5px] font-medium sm:grow-0">
+              Gerar Resumo para o Cliente
             </button>
             <button type="button" data-exportar-pendente
                     class="btn-contorno grow whitespace-nowrap rounded-md px-5 py-3 text-[13.5px] font-medium sm:grow-0">
@@ -122,5 +126,7 @@ require __DIR__ . '/includes/header-painel.php';
 
 <!-- Template de compilação do PDF: fora da tela, mas com layout real. -->
 <div id="pdf-template" aria-hidden="true"></div>
+
+<?php require __DIR__ . '/includes/painel-feedback.php'; ?>
 
 <?php require __DIR__ . '/includes/footer-painel.php'; ?>

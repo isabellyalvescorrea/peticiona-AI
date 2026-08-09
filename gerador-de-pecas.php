@@ -136,8 +136,9 @@ require __DIR__ . '/includes/header-painel.php';
       </div>
     </div>
 
-    <!-- Ações de exportação -->
-    <div id="peca-acoes" class="hidden">
+    <!-- Barra de ações: só existe depois que há documento, e acompanha a
+         rolagem para que baixar e resumir fiquem sempre ao alcance. -->
+    <div id="peca-acoes" class="barra-acoes hidden">
       <div class="cartao mt-5 rounded-lg p-6 sm:p-7">
         <div class="flex flex-col gap-5">
           <div>
@@ -151,30 +152,20 @@ require __DIR__ . '/includes/header-painel.php';
           <div class="flex flex-wrap gap-3">
             <button type="button" data-exportar-pdf data-origem="#peca-folha"
                     class="btn-ouro grow whitespace-nowrap rounded-md px-5 py-3 text-[13.5px] font-semibold sm:grow-0">
-              Baixar em PDF
+              Baixar PDF
+            </button>
+            <button type="button" data-gerar-resumo data-origem="#peca-folha"
+                    class="btn-contorno grow whitespace-nowrap rounded-md px-5 py-3 text-[13.5px] font-medium sm:grow-0">
+              Gerar Resumo para o Cliente
             </button>
             <button type="button" data-exportar-pendente
                     class="btn-contorno grow whitespace-nowrap rounded-md px-5 py-3 text-[13.5px] font-medium sm:grow-0">
               Baixar em Word (.docx)
             </button>
-            <button type="button" data-exportar-pendente
-                    class="btn-contorno grow whitespace-nowrap rounded-md px-5 py-3 text-[13.5px] font-medium sm:grow-0">
-              Resumo para WhatsApp
-            </button>
           </div>
 
           <p data-info-modelo
              class="hidden text-[11.5px] leading-relaxed text-silver/70"></p>
-        </div>
-
-        <div class="mt-6 border-t border-gold/[0.1] pt-5">
-          <p class="rotulo-secao text-[9px] text-gold/70">Prévia do resumo ao cliente</p>
-          <p class="mt-3 text-[13.5px] leading-[1.75] text-silver">
-            &ldquo;Prezado(a) cliente, protocolamos hoje a ação que exige o restabelecimento imediato dos
-            serviços contratados, acompanhada de pedido urgente para que a decisão saia antes do julgamento
-            final. Também pleiteamos indenização pelos transtornos. Assim que houver decisão judicial,
-            comunicaremos você de imediato.&rdquo;
-          </p>
         </div>
       </div>
     </div>
@@ -184,5 +175,7 @@ require __DIR__ . '/includes/header-painel.php';
 <!-- Template de compilação do PDF: fica fora da tela, mas com layout real —
      display:none impediria o html2canvas de medir o conteúdo. -->
 <div id="pdf-template" aria-hidden="true"></div>
+
+<?php require __DIR__ . '/includes/painel-feedback.php'; ?>
 
 <?php require __DIR__ . '/includes/footer-painel.php'; ?>

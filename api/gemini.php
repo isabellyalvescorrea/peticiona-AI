@@ -116,8 +116,8 @@ if ($prompt === '') {
     responder(['erro' => 'O campo "prompt" é obrigatório.'], 422);
 }
 
-if (!in_array($tarefa, ['peca', 'auditoria'], true)) {
-    responder(['erro' => 'Campo "tarefa" deve ser "peca" ou "auditoria".'], 422);
+if (!in_array($tarefa, ['peca', 'auditoria', 'resumo'], true)) {
+    responder(['erro' => 'Campo "tarefa" deve ser "peca", "auditoria" ou "resumo".'], 422);
 }
 
 /* ------------------------------------------------------------------------
@@ -140,7 +140,7 @@ $url = sprintf(
 );
 
 /** Uma tentativa de geração. Devolve [status, dadosDecodificados, erroCurl]. */
-function gerar(string $url, string $chave, string $prompt, float $temperatura): array
+function gerar(string $url, string $chave, string $prompt, float $temperatura, int $tetoSaida): array
 {
     $corpo = [
         'contents' => [[
@@ -150,7 +150,7 @@ function gerar(string $url, string $chave, string $prompt, float $temperatura): 
         'generationConfig' => [
             'temperature'     => $temperatura,
             'topP'            => 0.9,
-            'maxOutputTokens' => 8192,
+            'maxOutputTokens' => $tetoSaida,
         ],
     ];
 
@@ -199,7 +199,11 @@ function extrair_texto(?array $dados): string
 $temperatura = (float) ($entrada['temperatura'] ?? 0.35);
 $temperatura = max(0.0, min(1.5, $temperatura));
 
-[$status, $dados, $erroCurl] = gerar($url, $chave, $prompt, $temperatura);
+// O resumo ao cliente é curto por definição; teto menor devolve mais rápido e
+// consome menos cota do que o teto de uma peça inteira.
+$tetoSaida = $tarefa === 'resumo' ? 1536 : 8192;
+
+[$status, $dados, $erroCurl] = gerar($url, $chave, $prompt, $temperatura, $tetoSaida);
 
 if ($dados === null) {
     responder(['erro' => 'Falha de rede ao contatar o Gemini.', 'detalhe' => $erroCurl], 502);
