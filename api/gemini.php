@@ -29,28 +29,28 @@ error_reporting(E_ALL);
 /**
  * Sobrescrevível pela variável de ambiente GEMINI_MODEL.
  *
- * A escolha é por disponibilidade, não por ser o mais novo. O gemini-3.6-flash
- * foi testado primeiro e mostrou-se inviável dentro de uma função de 60 s: por
- * ser o modelo mais recente é também o mais concorrido, e respondeu ora 503
- * "experiencing high demand", ora nada — 55 s sem emitir um byte, porque
- * raciocina longamente antes de escrever.
+ * A escolha é ditada pelo que a chave realmente alcança, e não pela cota
+ * nominal. O Google restringe os modelos mais antigos a contas existentes:
+ * gemini-1.5-flash, gemini-2.0-flash e gemini-2.5-flash devolvem 404 aqui
+ * ("no longer available to new users"), por mais generoso que seja o limite
+ * publicado para eles.
  *
- * O 2.0-flash não faz raciocínio prévio, responde em poucos segundos e tem
- * cota gratuita bem mais larga. Redigir peça é geração estruturada, e a perda
- * de sofisticação não compensa um sistema que falha na maior parte das vezes.
- * Para preferir o 3.6, basta definir GEMINI_MODEL.
+ * O gemini-3.6-flash é o que esta chave atende — produziu peças completas em
+ * 25 a 33 s. Ele raciocina antes de escrever, o que o deixa lento; por isso o
+ * thinkingConfig abaixo mantém esse esforço no nível baixo.
  */
-const MODELO_PADRAO = 'gemini-2.0-flash';
+const MODELO_PADRAO = 'gemini-3.6-flash';
 
 /**
  * Alternativas, em ordem de uso. Cada modelo tem balde de cota próprio, então
- * a redundância protege tanto de congestionamento quanto de limite atingido.
+ * a redundância cobre tanto congestionamento quanto limite atingido — e agora
+ * também indisponibilidade, já que um 404 avança a fila em vez de encerrá-la.
  *
- * gemini-1.5-flash não entra: foi aposentado e não consta mais na listagem da
- * conta — pedi-lo devolveria 404.
+ * gemini-flash-latest fecha a fila por ser um apelido que o Google aponta para
+ * um modelo vigente: sobrevive à aposentadoria de qualquer nome específico.
  */
-const MODELO_RESERVA = 'gemini-2.5-flash-lite';
-const MODELO_ULTIMO  = 'gemini-3.5-flash';
+const MODELO_RESERVA = 'gemini-3.5-flash';
+const MODELO_ULTIMO  = 'gemini-flash-latest';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -266,15 +266,20 @@ $cadeia = array_values(array_unique(array_filter([
 
 /**
  * Só vale trocar de modelo quando a recusa é do modelo, não do pedido:
+ *   404 — aquele modelo não existe para esta chave; outro pode existir
  *   429 — cota daquele modelo esgotada; outro balde pode estar livre
  *   503 — congestionamento momentâneo
  *   500/502/504 — instabilidade do lado do Google
  *   resposta nula — silêncio até o timeout, que é indisponibilidade na prática
- * Um 400, 401, 403 ou 404 se repetiria idêntico e encerra a fila na hora.
+ *
+ * O 404 esteve fora desta lista e não deveria: é o erro mais específico de
+ * modelo que existe, e excluí-lo fazia a fila parar na primeira porta fechada.
+ * Já 400, 401 e 403 dizem respeito ao pedido ou à chave, se repetiriam
+ * idênticos em qualquer modelo, e encerram a fila na hora.
  */
 function vale_tentar_outro(int $status, ?array $dados): bool
 {
-    return $dados === null || in_array($status, [429, 500, 502, 503, 504], true);
+    return $dados === null || in_array($status, [404, 429, 500, 502, 503, 504], true);
 }
 
 $inicio    = microtime(true);
@@ -329,8 +334,9 @@ if ($status !== 200) {
         })(),
         $status === 401 || $status === 403 =>
             'A GEMINI_API_KEY foi recusada pelo Google. Verifique se a chave está correta e ativa.',
-        $status === 404 =>
-            'O modelo configurado não está disponível para esta chave. Ajuste GEMINI_MODEL nas variáveis de ambiente.',
+        $status === 404 => 'Nenhum dos modelos disponíveis atendeu esta chave (' .
+            implode(', ', array_column($tentativas, 'modelo')) . '). ' .
+            'Defina GEMINI_MODEL com um modelo que a sua conta alcance.',
         $status === 503 =>
             'O modelo está sob alta demanda no Google neste momento. Tente novamente em alguns instantes — ' .
             'se persistir, troque GEMINI_MODEL por um modelo menos concorrido.',
