@@ -239,6 +239,9 @@ if ($status !== 200) {
             'A GEMINI_API_KEY foi recusada pelo Google. Verifique se a chave está correta e ativa.',
         $status === 404 =>
             'O modelo configurado não está disponível para esta chave. Ajuste GEMINI_MODEL nas variáveis de ambiente.',
+        $status === 503 =>
+            'O modelo está sob alta demanda no Google neste momento. Tente novamente em alguns instantes — ' .
+            'se persistir, troque GEMINI_MODEL por um modelo menos concorrido.',
         default => 'O Gemini respondeu com erro.',
     };
 
@@ -246,8 +249,8 @@ if ($status !== 200) {
         'erro'     => $mensagem,
         'status'   => $status,
         'detalhe'  => $doGoogle !== '' ? $doGoogle : null,
-        // 429 é transitório: passado o intervalo, a mesma peça costuma sair.
-        'reptivel' => false,
+        // Congestionamento do modelo passa sozinho; vale o cliente insistir.
+        'reptivel' => $status === 503,
     ], 502);
 }
 
