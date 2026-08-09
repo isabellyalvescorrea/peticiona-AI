@@ -34,6 +34,14 @@ error_reporting(E_ALL);
  */
 const MODELO_PADRAO = 'gemini-3.6-flash';
 
+/**
+ * Usado quando o principal responde 503 "high demand". O modelo mais recente é
+ * também o mais concorrido, e o congestionamento é frequente o bastante para
+ * não valer devolver erro sem antes tentar um caminho alternativo. O 2.0-flash
+ * não faz raciocínio prévio, então responde rápido dentro do tempo que sobra.
+ */
+const MODELO_RESERVA = 'gemini-2.0-flash';
+
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
@@ -134,32 +142,47 @@ if ($chave === '') {
     ], 503);
 }
 
-$url = sprintf(
-    'https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent',
-    rawurlencode($modelo)
-);
 
-/** Uma tentativa de geração. Devolve [status, dadosDecodificados, erroCurl]. */
-function gerar(string $url, string $chave, string $prompt, float $temperatura, int $tetoSaida): array
+function url_do_modelo(string $modelo): string
 {
+    return sprintf(
+        'https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent',
+        rawurlencode($modelo)
+    );
+}
+
+/**
+ * Uma tentativa de geração. Devolve [status, dadosDecodificados, erroCurl].
+ * $limite é o tempo máximo em segundos, para que a soma das tentativas caiba
+ * no teto de 60 s da função.
+ */
+function gerar(string $url, string $chave, string $prompt, float $temperatura, int $tetoSaida, int $limite = 55): array
+{
+    $config = [
+        'temperature'     => $temperatura,
+        'topP'            => 0.9,
+        'maxOutputTokens' => $tetoSaida,
+    ];
+
+    /**
+     * O gemini-3.6-flash raciocina bastante antes de escrever: num prompt de
+     * 6 tokens gastou 96 tokens em raciocínio, e com o prompt de uma peça
+     * inteira chegou a não emitir byte algum em 55 s. Redigir peça é geração
+     * estruturada, não dedução difícil, então o nível baixo devolve dentro do
+     * tempo da função sem perder técnica.
+     *
+     * A linha 2.0 não tem raciocínio prévio e recusaria o campo.
+     */
+    if (!str_starts_with($url, 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0')) {
+        $config['thinkingConfig'] = ['thinkingLevel' => 'low'];
+    }
+
     $corpo = [
         'contents' => [[
             'role'  => 'user',
             'parts' => [['text' => $prompt]],
         ]],
-        'generationConfig' => [
-            'temperature'     => $temperatura,
-            'topP'            => 0.9,
-            'maxOutputTokens' => $tetoSaida,
-            /**
-             * O gemini-3.6-flash raciocina bastante antes de escrever: num
-             * prompt de 6 tokens gastou 96 em raciocínio, e com o prompt de
-             * uma peça inteira chegou a não emitir byte algum em 55 s. Redigir
-             * peça é geração estruturada, não dedução difícil, então o nível
-             * baixo devolve dentro do tempo da função sem perder técnica.
-             */
-            'thinkingConfig'  => ['thinkingLevel' => 'low'],
-        ],
+        'generationConfig' => $config,
     ];
 
     $ch = curl_init($url);
@@ -167,9 +190,8 @@ function gerar(string $url, string $chave, string $prompt, float $temperatura, i
         CURLOPT_POST           => true,
         CURLOPT_RETURNTRANSFER => true,
         // Abaixo do maxDuration da função (60 s), para que um Gemini lento vire
-        // um JSON de erro legível em vez de um corte seco da plataforma. Sobram
-        // 5 s para serializar a resposta e devolver.
-        CURLOPT_TIMEOUT        => 55,
+        // um JSON de erro legível em vez de um corte seco da plataforma.
+        CURLOPT_TIMEOUT        => $limite,
         CURLOPT_HTTPHEADER     => [
             'Content-Type: application/json',
             'x-goog-api-key: ' . $chave,
@@ -216,7 +238,21 @@ $temperatura = max(0.0, min(1.5, $temperatura));
  */
 $tetoSaida = $tarefa === 'resumo' ? 2048 : 8192;
 
-[$status, $dados, $erroCurl] = gerar($url, $chave, $prompt, $temperatura, $tetoSaida);
+$inicio = microtime(true);
+[$status, $dados, $erroCurl] = gerar(url_do_modelo($modelo), $chave, $prompt, $temperatura, $tetoSaida, 50);
+
+/**
+ * Congestionamento do modelo principal não precisa virar erro para quem está
+ * usando: havendo tempo no orçamento da função, o mesmo prompt vai ao modelo
+ * de reserva. Só o 503 justifica isso — 429 e 401 se repetiriam igual.
+ */
+if ($status === 503 && $modelo !== MODELO_RESERVA) {
+    $restante = 55 - (int) (microtime(true) - $inicio);
+    if ($restante >= 12) {
+        $modelo = MODELO_RESERVA;
+        [$status, $dados, $erroCurl] = gerar(url_do_modelo($modelo), $chave, $prompt, $temperatura, $tetoSaida, $restante);
+    }
+}
 
 if ($dados === null) {
     responder(['erro' => 'Falha de rede ao contatar o Gemini.', 'detalhe' => $erroCurl], 502);
