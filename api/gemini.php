@@ -159,9 +159,9 @@ function gerar(string $url, string $chave, string $prompt, float $temperatura, i
         CURLOPT_POST           => true,
         CURLOPT_RETURNTRANSFER => true,
         // Abaixo do maxDuration da função (60 s), para que um Gemini lento vire
-        // um JSON de erro legível em vez de um corte seco da plataforma. Uma
-        // peça inteira leva de 25 a 35 s; a folga cobre a cauda.
-        CURLOPT_TIMEOUT        => 52,
+        // um JSON de erro legível em vez de um corte seco da plataforma. Sobram
+        // 5 s para serializar a resposta e devolver.
+        CURLOPT_TIMEOUT        => 55,
         CURLOPT_HTTPHEADER     => [
             'Content-Type: application/json',
             'x-goog-api-key: ' . $chave,
@@ -199,9 +199,15 @@ function extrair_texto(?array $dados): string
 $temperatura = (float) ($entrada['temperatura'] ?? 0.35);
 $temperatura = max(0.0, min(1.5, $temperatura));
 
-// O resumo ao cliente é curto por definição; teto menor devolve mais rápido e
-// consome menos cota do que o teto de uma peça inteira.
-$tetoSaida = $tarefa === 'resumo' ? 1536 : 8192;
+/**
+ * Teto de saída por tarefa.
+ *
+ * 4096 tokens equivalem a cerca de 14 mil caracteres — bem acima das peças
+ * observadas, que ficam entre 8 e 10 mil. O teto anterior, de 8192, não
+ * melhorava o resultado e alongava a geração: com o prompt completo ela passou
+ * de 52 s e estourou o tempo da requisição. O resumo é curto por definição.
+ */
+$tetoSaida = $tarefa === 'resumo' ? 1536 : 4096;
 
 [$status, $dados, $erroCurl] = gerar($url, $chave, $prompt, $temperatura, $tetoSaida);
 
