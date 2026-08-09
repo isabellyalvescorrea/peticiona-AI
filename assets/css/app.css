@@ -376,14 +376,22 @@ button[aria-busy="true"] {
 
 /* --- Barra de ações do documento ----------------------------------------- */
 
-/* Gruda no rodapé da coluna enquanto se lê a peça, para que baixar e resumir
-   estejam sempre ao alcance sem rolar de volta. */
+/* Encabeça a coluna do documento e acompanha a rolagem logo abaixo do cabeçalho
+   do painel.
+   Antes ela grudava no rodapé, e ali cobria as últimas linhas da peça — o texto
+   passava por baixo justamente onde ficam o fecho e a assinatura. No topo, o
+   documento desliza sob uma faixa opaca acima de onde se está lendo. */
 .barra-acoes {
   position: sticky;
-  bottom: 0;
+  top: 72px; /* altura do cabeçalho do painel */
   z-index: 20;
-  background: linear-gradient(180deg, rgba(11, 19, 43, 0) 0%, rgba(11, 19, 43, 0.92) 22%, rgba(11, 19, 43, 0.98) 100%);
-  backdrop-filter: blur(6px);
+  background: var(--navy);
+  padding-bottom: 12px;
+}
+
+/* Sem margem superior própria: a barra é o primeiro elemento da coluna. */
+.barra-acoes > .cartao {
+  margin-top: 0;
 }
 
 /* --- Modal do resumo ------------------------------------------------------ */

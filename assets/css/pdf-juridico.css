@@ -147,17 +147,28 @@
 
 /* --- Pré-visualização em tela --------------------------------------------- */
 
-/* A folha aparece no painel escuro; a sombra separa o papel do fundo sem
-   alterar nenhuma medida do documento. */
+/*
+ * A folha em tela é fluida, e isso é deliberado: o PDF é compilado a partir do
+ * #pdf-template, que mantém 210 mm exatos, então a prévia não precisa medir um
+ * A4 — precisa parecer um documento e permanecer legível.
+ *
+ * A tentativa anterior mantinha os 794 px fixos e reduzia tudo por transform.
+ * Numa tela de notebook isso levava o corpo a menos de 10 pt e ainda deixava
+ * linhas cortadas na borda direita. Largura fluida elimina a redução, a
+ * rolagem lateral e o corte de uma vez só.
+ */
 .previa-folha {
   overflow-x: auto;
 }
 
-/* A redução em telas estreitas é calculada em pdf-juridico.js, a partir da
-   largura real da coluna: um breakpoint fixo erraria a escala sempre que o
-   layout mudasse. Aqui ficam apenas as propriedades constantes. */
 .previa-folha .folha-juridica {
+  width: 100%;
+  max-width: 794px;   /* 210 mm: o papel nunca fica maior que o real */
+  min-height: 0;      /* sem a altura de 297 mm, que criaria vão em branco */
   margin: 0 auto;
-  padding: 30mm 20mm 20mm 30mm;
+  /* As margens acompanham a largura, preservando a proporção forense
+     (30/20/20/30 mm) sem exigir espaço que a coluna não tem. */
+  padding: clamp(22px, 5.7%, 113px) clamp(16px, 3.8%, 76px)
+           clamp(16px, 3.8%, 76px)  clamp(22px, 5.7%, 113px);
   box-shadow: 0 40px 90px -40px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(226, 212, 168, 0.16);
 }

@@ -9,6 +9,8 @@ $painel_subtitulo = 'Minutas processuais alinhadas ao CPC/2015 e à jurisprudên
 $estilos_extra = [asset('assets/css/pdf-juridico.css')];
 $scripts_extra = [
     'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+    'https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.js',
     asset('assets/js/dados.js'),
     asset('assets/js/pdf-juridico.js'),
     asset('assets/js/gemini.js'),
@@ -128,14 +130,6 @@ require __DIR__ . '/includes/header-painel.php';
       </p>
     </div>
 
-    <!-- Folha jurídica: mesma marcação e mesmas medidas que saem no PDF. O
-         conteúdo é injetado por gemini.js a partir do Markdown da IA. -->
-    <div id="peca-folha" class="hidden">
-      <div class="previa-folha">
-        <div id="peca-corpo" class="folha-juridica"></div>
-      </div>
-    </div>
-
     <!-- Barra de ações: só existe depois que há documento, e acompanha a
          rolagem para que baixar e resumir fiquem sempre ao alcance. -->
     <div id="peca-acoes" class="barra-acoes hidden">
@@ -158,7 +152,7 @@ require __DIR__ . '/includes/header-painel.php';
                     class="btn-contorno grow whitespace-nowrap rounded-md px-5 py-3 text-[13.5px] font-medium sm:grow-0">
               Gerar Resumo para o Cliente
             </button>
-            <button type="button" data-exportar-pendente
+            <button type="button" data-exportar-word data-origem="#peca-folha"
                     class="btn-contorno grow whitespace-nowrap rounded-md px-5 py-3 text-[13.5px] font-medium sm:grow-0">
               Baixar em Word (.docx)
             </button>
@@ -169,6 +163,15 @@ require __DIR__ . '/includes/header-painel.php';
         </div>
       </div>
     </div>
+
+    <!-- Folha jurídica: mesma marcação e mesmas medidas que saem no PDF. O
+         conteúdo é injetado por gemini.js a partir do Markdown da IA. -->
+    <div id="peca-folha" class="hidden">
+      <div class="previa-folha">
+        <div id="peca-corpo" class="folha-juridica"></div>
+      </div>
+    </div>
+
   </section>
 </div>
 

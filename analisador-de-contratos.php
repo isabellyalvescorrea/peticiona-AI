@@ -9,6 +9,8 @@ $painel_subtitulo = 'Auditoria de cláusulas, riscos de litígio e recomendaçõ
 $estilos_extra = [asset('assets/css/pdf-juridico.css')];
 $scripts_extra = [
     'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+    'https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.js',
     asset('assets/js/dados.js'),
     asset('assets/js/pdf-juridico.js'),
     asset('assets/js/gemini.js'),
@@ -89,36 +91,38 @@ require __DIR__ . '/includes/header-painel.php';
 
     <!-- Parecer: a marcação e as medidas são as mesmas que saem no PDF. -->
     <div id="analise-resultado" class="hidden space-y-5">
-      <div class="previa-folha">
-        <div id="analise-corpo" class="folha-juridica"></div>
+      <div class="barra-acoes">
+        <div class="cartao rounded-lg p-6 sm:p-7">
+          <div class="flex flex-col gap-5">
+            <div>
+              <h3 class="text-[16px] font-medium text-silk">Exportar e comunicar</h3>
+              <p class="mt-1.5 text-[12.5px] text-silver">
+                Documento com formatação forense, pronto para anexar ao dossiê do cliente.
+              </p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <button type="button" data-exportar-pdf data-origem="#analise-resultado"
+                      class="btn-ouro grow whitespace-nowrap rounded-md px-5 py-3 text-[13.5px] font-semibold sm:grow-0">
+                Baixar parecer em PDF
+              </button>
+              <button type="button" data-gerar-resumo data-origem="#analise-resultado"
+                      class="btn-contorno grow whitespace-nowrap rounded-md px-5 py-3 text-[13.5px] font-medium sm:grow-0">
+                Gerar Resumo para o Cliente
+              </button>
+              <button type="button" data-exportar-word data-origem="#analise-resultado"
+                      class="btn-contorno grow whitespace-nowrap rounded-md px-5 py-3 text-[13.5px] font-medium sm:grow-0">
+                Baixar em Word (.docx)
+              </button>
+            </div>
+
+            <p data-info-modelo
+               class="hidden text-[11.5px] leading-relaxed text-silver/70"></p>
+          </div>
+        </div>
       </div>
 
-      <div class="barra-acoes cartao rounded-lg p-6 sm:p-7">
-        <div class="flex flex-col gap-5">
-          <div>
-            <h3 class="text-[16px] font-medium text-silk">Exportar e comunicar</h3>
-            <p class="mt-1.5 text-[12.5px] text-silver">
-              Documento com formatação forense, pronto para anexar ao dossiê do cliente.
-            </p>
-          </div>
-          <div class="flex flex-wrap gap-3">
-            <button type="button" data-exportar-pdf data-origem="#analise-resultado"
-                    class="btn-ouro grow whitespace-nowrap rounded-md px-5 py-3 text-[13.5px] font-semibold sm:grow-0">
-              Baixar parecer em PDF
-            </button>
-            <button type="button" data-gerar-resumo data-origem="#analise-resultado"
-                    class="btn-contorno grow whitespace-nowrap rounded-md px-5 py-3 text-[13.5px] font-medium sm:grow-0">
-              Gerar Resumo para o Cliente
-            </button>
-            <button type="button" data-exportar-pendente
-                    class="btn-contorno grow whitespace-nowrap rounded-md px-5 py-3 text-[13.5px] font-medium sm:grow-0">
-              Baixar em Word (.docx)
-            </button>
-          </div>
-
-          <p data-info-modelo
-             class="hidden text-[11.5px] leading-relaxed text-silver/70"></p>
-        </div>
+      <div class="previa-folha">
+        <div id="analise-corpo" class="folha-juridica"></div>
       </div>
     </div>
   </section>
