@@ -80,7 +80,7 @@
      Chamada HTTP
      --------------------------------------------------------------------- */
 
-  function chamarGemini(payload) {
+  function requisicao(payload) {
     return fetch(ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -88,11 +88,37 @@
     }).then(function (resposta) {
       return resposta.json().then(function (corpo) {
         if (!resposta.ok) {
-          throw new Error(corpo.erro || ('HTTP ' + resposta.status));
+          var e = new Error(corpo.erro || ('HTTP ' + resposta.status));
+          e.reptivel = !!corpo.reptivel;
+          throw e;
         }
         return corpo;
       });
     });
+  }
+
+  /**
+   * Peça processual é texto muito padronizado, e o Gemini às vezes barra a
+   * própria saída como RECITATION por reconhecê-la como reprodução de material
+   * conhecido. O bloqueio é intermitente: subir a temperatura afasta a geração
+   * do trecho memorizado.
+   *
+   * A insistência acontece aqui, e não no servidor, porque uma peça leva de 25
+   * a 35 s — duas tentativas estourariam o teto de 60 s da função.
+   */
+  var TEMPERATURAS = [0.35, 0.8];
+
+  function chamarGemini(payload, aoTentarNovamente) {
+    function tentativa(i) {
+      var corpo = Object.assign({}, payload, { temperatura: TEMPERATURAS[i] });
+      return requisicao(corpo).catch(function (erro) {
+        if (!erro.reptivel || i >= TEMPERATURAS.length - 1) throw erro;
+        console.warn('[Peticiona] Bloqueio por recitação; refazendo com mais variação.');
+        if (aoTentarNovamente) aoTentarNovamente();
+        return tentativa(i + 1);
+      });
+    }
+    return tentativa(0);
   }
 
   /* ---------------------------------------------------------------------
@@ -114,6 +140,13 @@
 
     alvo.textContent = partes.join(' · ');
     mostrar(alvo);
+  }
+
+  /** Explica a demora extra quando a primeira composição é bloqueada. */
+  function avisarNovaTentativa(carga) {
+    if (!carga) return;
+    var nota = carga.querySelector('[data-nota-carga]');
+    if (nota) nota.textContent = 'A primeira composição foi bloqueada por recitação. Refazendo com mais variação…';
   }
 
   /** Mostra a falha onde o usuário está olhando, além do console. */
@@ -169,7 +202,7 @@
       mostrar(carga);
       botao.disabled = true;
 
-      chamarGemini(payload)
+      chamarGemini(payload, function () { avisarNovaTentativa(carga); })
         .then(function (resposta) {
           ocultar(carga);
 
@@ -245,7 +278,7 @@
       mostrar(carga);
       botao.disabled = true;
 
-      chamarGemini(payload)
+      chamarGemini(payload, function () { avisarNovaTentativa(carga); })
         .then(function (resposta) {
           ocultar(carga);
           if (corpo) corpo.innerHTML = global.PeticionaPDF.markdownParaHTML(resposta.texto);

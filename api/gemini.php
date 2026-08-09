@@ -159,8 +159,9 @@ function gerar(string $url, string $chave, string $prompt, float $temperatura): 
         CURLOPT_POST           => true,
         CURLOPT_RETURNTRANSFER => true,
         // Abaixo do maxDuration da função (60 s), para que um Gemini lento vire
-        // um JSON de erro legível em vez de um corte seco da plataforma.
-        CURLOPT_TIMEOUT        => 24,
+        // um JSON de erro legível em vez de um corte seco da plataforma. Uma
+        // peça inteira leva de 25 a 35 s; a folga cobre a cauda.
+        CURLOPT_TIMEOUT        => 52,
         CURLOPT_HTTPHEADER     => [
             'Content-Type: application/json',
             'x-goog-api-key: ' . $chave,
@@ -188,48 +189,33 @@ function extrair_texto(?array $dados): string
 }
 
 /**
- * Peça processual é texto altamente padronizado, e o Gemini às vezes barra a
- * própria saída como RECITATION por reconhecê-la como reprodução de material
- * conhecido. O bloqueio é intermitente: variar a temperatura afasta a geração
- * do trecho memorizado e costuma resolver na segunda tentativa.
+ * Uma única tentativa por requisição.
  *
- * Duas tentativas de 24 s cabem no orçamento de 60 s da função.
+ * Uma peça inteira leva de 25 a 35 s. Repetir aqui dentro custaria o dobro e
+ * estouraria os 60 s de teto da função, então a retentativa vive no navegador,
+ * que não tem esse limite: a variação de temperatura chega pelo campo
+ * "temperatura" do corpo.
  */
-$temperaturas = [0.35, 0.75];
-$dados = null;
-$status = 0;
-$erroCurl = '';
-$texto = '';
-$motivo = null;
+$temperatura = (float) ($entrada['temperatura'] ?? 0.35);
+$temperatura = max(0.0, min(1.5, $temperatura));
 
-foreach ($temperaturas as $i => $temperatura) {
-    [$status, $dados, $erroCurl] = gerar($url, $chave, $prompt, $temperatura);
+[$status, $dados, $erroCurl] = gerar($url, $chave, $prompt, $temperatura);
 
-    if ($dados === null) {
-        responder(['erro' => 'Falha de rede ao contatar o Gemini.', 'detalhe' => $erroCurl], 502);
-    }
-
-    if ($status !== 200) {
-        responder([
-            'erro'    => 'O Gemini respondeu com erro.',
-            'status'  => $status,
-            // A mensagem do Google é devolvida sem a chave, que nunca entra no corpo.
-            'detalhe' => $dados['error']['message'] ?? null,
-        ], 502);
-    }
-
-    $texto  = extrair_texto($dados);
-    $motivo = $dados['candidates'][0]['finishReason'] ?? null;
-
-    if ($texto !== '') {
-        break;
-    }
-
-    // Só vale insistir quando o bloqueio é do tipo que a variação resolve.
-    if ($motivo !== 'RECITATION' || $i === count($temperaturas) - 1) {
-        break;
-    }
+if ($dados === null) {
+    responder(['erro' => 'Falha de rede ao contatar o Gemini.', 'detalhe' => $erroCurl], 502);
 }
+
+if ($status !== 200) {
+    responder([
+        'erro'    => 'O Gemini respondeu com erro.',
+        'status'  => $status,
+        // A mensagem do Google é devolvida sem a chave, que nunca entra no corpo.
+        'detalhe' => $dados['error']['message'] ?? null,
+    ], 502);
+}
+
+$texto  = extrair_texto($dados);
+$motivo = $dados['candidates'][0]['finishReason'] ?? null;
 
 if ($texto === '') {
     $explicacoes = [
@@ -244,6 +230,8 @@ if ($texto === '') {
     responder([
         'erro'   => $explicacoes[$motivo] ?? 'O Gemini não retornou texto.',
         'motivo' => $motivo,
+        // Sinaliza ao cliente que insistir com outra temperatura tende a resolver.
+        'reptivel' => $motivo === 'RECITATION',
     ], 502);
 }
 

@@ -124,7 +124,7 @@ require __DIR__ . '/includes/header-painel.php';
         <span class="ponto-carga inline-block">.</span><span class="ponto-carga inline-block">.</span><span class="ponto-carga inline-block">.</span>
       </p>
       <p class="mt-6 max-w-[380px] text-[12.5px] leading-relaxed text-silver">
-        Estruturando endereçamento, qualificação, fundamentos e rol de pedidos.
+        <span data-nota-carga>Estruturando endereçamento, qualificação, fundamentos e rol de pedidos.</span>
       </p>
     </div>
 

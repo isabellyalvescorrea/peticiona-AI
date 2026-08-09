@@ -83,7 +83,7 @@ require __DIR__ . '/includes/header-painel.php';
         <span class="ponto-carga inline-block">.</span><span class="ponto-carga inline-block">.</span><span class="ponto-carga inline-block">.</span>
       </p>
       <p class="mt-6 max-w-[380px] text-[12.5px] leading-relaxed text-silver">
-        Cotejando o texto com a legislação vigente e a jurisprudência consolidada.
+        <span data-nota-carga>Cotejando o texto com a legislação vigente e a jurisprudência consolidada.</span>
       </p>
     </div>
 
