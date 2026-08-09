@@ -53,8 +53,15 @@ $modelo = getenv('GEMINI_MODEL') ?: MODELO_PADRAO;
  * Existe porque a disponibilidade muda com o tempo — um modelo válido na
  * escrita do código pode ser aposentado depois — e adivinhar o nome custa
  * um deploy a cada tentativa.
+ *
+ * Fica desligado por padrão: é um GET público que dispararia uma chamada
+ * autenticada ao Google a cada acesso. Para usá-lo, defina GEMINI_DEBUG=1
+ * nas variáveis de ambiente e remova depois.
  */
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && isset($_GET['modelos'])) {
+    if ((getenv('GEMINI_DEBUG') ?: '') !== '1') {
+        responder(['erro' => 'Diagnóstico desativado. Defina GEMINI_DEBUG=1 para habilitar.'], 404);
+    }
     if ($chave === '') {
         responder(['erro' => 'GEMINI_API_KEY não configurada.'], 503);
     }
