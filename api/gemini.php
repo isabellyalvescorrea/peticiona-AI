@@ -17,6 +17,18 @@
 
 declare(strict_types=1);
 
+/**
+ * Avisos do PHP jamais podem ir para o corpo: eles saem antes dos headers,
+ * inutilizam http_response_code() e transformam a resposta num JSON inválido
+ * para o cliente. Vão para o log da função, que é onde se lê diagnóstico.
+ */
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+error_reporting(E_ALL);
+
+/** Sobrescrevível pela variável de ambiente GEMINI_MODEL. */
+const MODELO_PADRAO = 'gemini-2.5-flash';
+
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
@@ -26,6 +38,44 @@ function responder(array $corpo, int $status = 200): never
     http_response_code($status);
     echo json_encode($corpo, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
+}
+
+$chave  = getenv('GEMINI_API_KEY') ?: '';
+$modelo = getenv('GEMINI_MODEL') ?: MODELO_PADRAO;
+
+/**
+ * Diagnóstico: GET ?modelos=1 devolve os modelos que a chave enxerga hoje.
+ * Existe porque a disponibilidade muda com o tempo — um modelo válido na
+ * escrita do código pode ser aposentado depois — e adivinhar o nome custa
+ * um deploy a cada tentativa.
+ */
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && isset($_GET['modelos'])) {
+    if ($chave === '') {
+        responder(['erro' => 'GEMINI_API_KEY não configurada.'], 503);
+    }
+
+    $ch = curl_init('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 30,
+        CURLOPT_HTTPHEADER     => ['x-goog-api-key: ' . $chave],
+    ]);
+    $bruto  = curl_exec($ch);
+    $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $lista  = json_decode((string) $bruto, true);
+
+    if ($status !== 200 || !is_array($lista)) {
+        responder(['erro' => 'Não foi possível listar modelos.', 'status' => $status], 502);
+    }
+
+    $geram = [];
+    foreach ($lista['models'] ?? [] as $m) {
+        if (in_array('generateContent', $m['supportedGenerationMethods'] ?? [], true)) {
+            $geram[] = str_replace('models/', '', $m['name'] ?? '');
+        }
+    }
+
+    responder(['modeloEmUso' => $modelo, 'disponiveis' => $geram]);
 }
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
@@ -57,9 +107,6 @@ if ($prompt === '') {
 if (!in_array($tarefa, ['peca', 'auditoria'], true)) {
     responder(['erro' => 'Campo "tarefa" deve ser "peca" ou "auditoria".'], 422);
 }
-
-$chave  = getenv('GEMINI_API_KEY') ?: '';
-$modelo = getenv('GEMINI_MODEL') ?: 'gemini-2.5-flash';
 
 /* ------------------------------------------------------------------------
    Modo simulado — enquanto não houver chave configurada
@@ -114,7 +161,8 @@ curl_setopt_array($ch, [
 $resposta = curl_exec($ch);
 $status   = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $erroCurl = curl_error($ch);
-curl_close($ch);
+// curl_close() não é chamado: desde o PHP 8.0 não tem efeito, e no 8.5 emite
+// deprecação — que vazaria para o corpo e quebraria o JSON.
 
 if ($resposta === false) {
     responder(['erro' => 'Falha de rede ao contatar o Gemini.', 'detalhe' => $erroCurl], 502);
